@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+
+model Product {
+  id              String      @id @default(cuid())
+  name            String
+  description     String
+  image           String
+  price           Int
+  weight          String
+  tradition       String?
+  available       Boolean     @default(true)
+  specialCategory String?     // NMV_SPECIAL, FESTIVAL_FAVOURITE, CUSTOMER_FAVOURITE
+  tags            String?     // Comma separated tags: "Pure Ghee,Traditional Recipe"
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  area      String
+  timings   String
+  distance  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  phone     String?
+  role      String   @default("CUSTOMER") // CUSTOMER, STAFF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  simpleId    String      @unique // Short readable ID
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  branchId    String
+  branch      Branch      @relation(fields: [branchId], references: [id])
+  items       OrderItem[]
+  status      String      @default("PENDING") // PENDING, PREPARING, READY, COLLECTED
+  orderType   String      @default("PRE_ORDER") // IMMEDIATE, PRE_ORDER
+  totalAmount Int
+  pickupTime  DateTime
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Int
+}

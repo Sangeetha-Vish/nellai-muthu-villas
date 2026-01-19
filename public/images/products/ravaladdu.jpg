@@ -1,0 +1,24 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#D4AF37" opacity="0.3" />
+    </pattern>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#630D16;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A0A10;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grad)" />
+  <rect width="100%" height="100%" fill="url(#pattern)" />
+  
+  <!-- Decorative Circular Border -->
+  <circle cx="200" cy="200" r="140" stroke="#D4AF37" stroke-width="2" fill="none" opacity="0.5" />
+  <circle cx="200" cy="200" r="130" stroke="#D4AF37" stroke-width="1" fill="none" opacity="0.3" />
+
+  <!-- Text -->
+  <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="Georgia, serif" font-size="24" fill="#D4AF37">Nella Muthu Vilas</text>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FDFCF0" letter-spacing="2">TRADITIONAL SWEETS</text>
+  
+  <!-- Iconish Element -->
+  <path d="M200 280 Q160 280 150 250 T200 220 T250 250 T200 280" fill="none" stroke="#D4AF37" stroke-width="2" opacity="0.8"/>
+</svg>

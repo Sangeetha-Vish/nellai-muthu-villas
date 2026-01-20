@@ -32,21 +32,21 @@ try {
 
     const products = [
         // NMV SPECIAL
-        [generateId(), 'Tirunelveli Halwa', 'Our signature wheat halwa, cooked slowly in Thamirabarani river water.', '/images/halwa.jpg', 360, '500g', 'The soul of Nella Muthu Vilas.', 1, 'NMV_SPECIAL', 'Pure Ghee,Traditional Recipe,Signature', now, now],
+        [generateId(), 'Tirunelveli Halwa', 'Our signature wheat halwa, cooked slowly in Thamirabarani river water.', '/images/products/halwa.jpg', 360, '500g', 'The soul of Nella Muthu Vilas.', 1, 'NMV_SPECIAL', 'Pure Ghee,Traditional Recipe,Signature', now, now],
         [generateId(), 'Muscoth Halwa', 'A coconut milk based delicacy. Rich, chewy, and distinctively flavored.', '/images/muscoth.jpg', 420, '500g', 'Coastal district specialty.', 1, 'NMV_SPECIAL', 'Coconut Milk,Rich', now, now],
-        [generateId(), 'Ghee Mysore Pak', 'Melt-in-your-mouth texture with the rich aroma of pure ghee.', '/images/mysore-pak.jpg', 380, '500g', 'Royal delicacy.', 1, 'NMV_SPECIAL', 'Pure Ghee,Soft', now, now],
+        [generateId(), 'Ghee Mysore Pak', 'Melt-in-your-mouth texture with the rich aroma of pure ghee.', '/images/products/mysorepak.jpg', 380, '500g', 'Royal delicacy.', 1, 'NMV_SPECIAL', 'Pure Ghee,Soft', now, now],
 
         // FESTIVAL FAVOURITE
-        [generateId(), 'Laddu', 'Classic besan laddu with cashews and raisins. Essential for every celebration.', '/images/laddu.jpg', 280, '500g', 'Golden festival drops.', 1, 'FESTIVAL_FAVOURITE', 'Seasonal Sweet,Kids Favourite', now, now],
-        [generateId(), 'Jangiri', 'Ornate, flower-shaped sweet made from urad dal batter and soaked in sugar syrup.', '/images/jangiri.jpg', 260, '500g', 'Art on a plate.', 1, 'FESTIVAL_FAVOURITE', 'Traditional Recipe,Juicy', now, now],
+        [generateId(), 'Laddu', 'Classic besan laddu with cashews and raisins. Essential for every celebration.', '/images/products/laddu.jpg', 280, '500g', 'Golden festival drops.', 1, 'FESTIVAL_FAVOURITE', 'Seasonal Sweet,Kids Favourite', now, now],
+        [generateId(), 'Jangiri', 'Ornate, flower-shaped sweet made from urad dal batter and soaked in sugar syrup.', '/images/products/jangiri.jpg', 260, '500g', 'Art on a plate.', 1, 'FESTIVAL_FAVOURITE', 'Traditional Recipe,Juicy', now, now],
 
         // CUSTOMER FAVOURITE
-        [generateId(), 'Mixture', 'Spicy, crunchy south Indian mixture with karasev, boondi, and curry leaves.', '/images/mixture.jpg', 220, '400g', 'Perfect evening snack.', 1, 'CUSTOMER_FAVOURITE', 'Spicy,Crunchy,Savoury', now, now],
-        [generateId(), 'Palkova', 'Milk sweet made by simmering milk until it thickens. Simple and divine.', '/images/palkova.jpg', 400, '250g', 'Pure milk goodness.', 1, 'CUSTOMER_FAVOURITE', 'Milk Sweet,Kids Favourite', now, now],
+        [generateId(), 'Mixture', 'Spicy, crunchy south Indian mixture with karasev, boondi, and curry leaves.', '/images/products/mixture.jpg', 220, '400g', 'Perfect evening snack.', 1, 'CUSTOMER_FAVOURITE', 'Spicy,Crunchy,Savoury', now, now],
+        [generateId(), 'Palkova', 'Milk sweet made by simmering milk until it thickens. Simple and divine.', '/images/products/palkova.jpg', 400, '250g', 'Pure milk goodness.', 1, 'CUSTOMER_FAVOURITE', 'Milk Sweet,Kids Favourite', now, now],
 
         // ALL / OTHERS
         [generateId(), 'Karasev', 'Thick, spicy gram flour noodles. Great with coffee.', '/images/karasev.jpg', 200, '250g', 'Crunchy bite.', 1, null, 'Spicy,Savoury', now, now],
-        [generateId(), 'Badusha', 'Flaky pastry soaked in sugar syrup. Mild sweetness.', '/images/badusha.jpg', 300, '500g', 'Mild & Soft.', 1, null, 'Light & Mild', now, now]
+        [generateId(), 'Badusha', 'Flaky pastry soaked in sugar syrup. Mild sweetness.', '/images/products/badusha.jpg', 300, '500g', 'Mild & Soft.', 1, null, 'Light & Mild', now, now]
     ];
 
     for (const product of products) {

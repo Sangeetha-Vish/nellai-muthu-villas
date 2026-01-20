@@ -68,7 +68,7 @@ function seed() {
     {
       name: 'Mysore Pak',
       description: 'Traditional ghee-based sweet with a melt-in-mouth texture',
-      image: '/images/mysore-pak.jpg',
+      image: '/images/products/mysorepak.jpg',
       price: 450,
       weight: '500g',
       tradition: 'Prepared using the authentic recipe passed down through generations',
@@ -104,7 +104,7 @@ function seed() {
     {
       name: 'Jangiri',
       description: 'Crispy, coiled sweet with a vibrant orange color',
-      image: '/images/jangiri.jpg',
+      image: '/images/products/jangiri.jpg',
       price: 400,
       weight: '500g',
       tradition: 'A festival favorite, prepared fresh daily',

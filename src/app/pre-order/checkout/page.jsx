@@ -8,13 +8,19 @@ import { Calendar, Clock, MapPin, AlertCircle, ShoppingBag, ArrowRight } from 'l
 import Image from 'next/image';
 import { BackButton } from '@/components/ui/BackButton';
 
+import { useAuth } from '@/contexts/AuthContext';
+import { Lock } from 'lucide-react';
+import Link from 'next/link';
+
 export default function CheckoutPage() {
     const { items, totalAmount, clearCart, orderType, preOrderDate, preOrderOccasion } = useCart();
     const { selectedBranch } = useBranch();
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
@@ -84,13 +90,22 @@ export default function CheckoutPage() {
                     quantity: item.quantity,
                     price: item.price
                 })),
-                totalAmount: Number(totalAmount),
+                totalAmount: Math.round(Number(totalAmount)), // Ensure Integer for Prisma
                 branchId: selectedBranch.id,
                 pickupTime: pickupDateTime.toISOString(),
                 orderType: orderType || 'IMMEDIATE',
-                occasion: preOrderOccasion || 'PERSONAL'
+                occasion: preOrderOccasion || 'PERSONAL',
+                paymentMethod: paymentMethod // Add payment method
             };
 
+            // UPI FLOW: Defer order creation (Requirement)
+            if (paymentMethod === 'UPI') {
+                sessionStorage.setItem('pending_order_payload', JSON.stringify(payload));
+                router.push('/pre-order/upi');
+                return;
+            }
+
+            // CASH FLOW: Create order immediately
             const res = await fetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -100,8 +115,14 @@ export default function CheckoutPage() {
             if (res.ok) {
                 const data = await res.json();
                 clearCart();
-                // Redirect with Order ID and Type params
-                router.push(`/pre-order/confirmation?orderId=${data.id}&type=${orderType}`);
+
+                // Store security details for one-time display
+                sessionStorage.setItem('last_order_details', JSON.stringify({
+                    publicOrderId: data.order.publicOrderId,
+                    otp: data.order.otp
+                }));
+
+                router.push(`/pre-order/confirmation?orderId=${data.order.id}&type=${orderType}`);
             } else {
                 const errData = await res.json();
                 setError(errData.error || "Failed to place order. Please try again.");
@@ -113,6 +134,32 @@ export default function CheckoutPage() {
             setIsSubmitting(false);
         }
     };
+
+    if (loading) return null; // Or a spinner
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-[#FDFCF0] flex items-center justify-center px-4">
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-[#E6D5C3] text-center max-w-md w-full">
+                    <div className="w-16 h-16 bg-[#D4A373]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock className="w-8 h-8 text-[#D4A373]" />
+                    </div>
+                    <h2 className="text-2xl font-serif text-[#5D4037] mb-2">Sign in to Order</h2>
+                    <p className="text-[#8B4513]/60 mb-6">
+                        Please sign in to secure your order and track its status.
+                    </p>
+                    <Link
+                        href={`/login?redirect=/pre-order/checkout`}
+                        className="block w-full bg-[#D4A373] hover:bg-[#C39265] text-white font-medium py-3 rounded-xl transition-all"
+                    >
+                        Sign In / Create Account
+                    </Link>
+                    <Link href="/" className="block mt-4 text-[#D4A373] hover:text-[#C39265] text-sm">
+                        Return Home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     if (items.length === 0) return null;
 
@@ -202,6 +249,43 @@ export default function CheckoutPage() {
                                             Shop hours: 9:00 AM - 9:00 PM
                                         </p>
                                     )}
+                                </div>
+                                {/* Payment Method */}
+                                <div className="pt-4 border-t border-[#D4AF37]/20">
+                                    <label className="block text-sm font-medium text-[#8B4513] mb-2">
+                                        Payment Method
+                                    </label>
+                                    <div className="space-y-2">
+                                        <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${paymentMethod === 'CASH' ? 'border-[#630D16] bg-[#630D16]/5' : 'border-[#D4AF37]/30 hover:bg-[#D4AF37]/5'}`}>
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'CASH' ? 'border-[#630D16]' : 'border-[#8B4513]/40'}`}>
+                                                {paymentMethod === 'CASH' && <div className="w-2 h-2 rounded-full bg-[#630D16]" />}
+                                            </div>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="CASH"
+                                                checked={paymentMethod === 'CASH'}
+                                                onChange={() => setPaymentMethod('CASH')}
+                                                className="hidden"
+                                            />
+                                            <span className="text-[#3D2B1F] font-medium">Cash on Pickup</span>
+                                        </label>
+
+                                        <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${paymentMethod === 'UPI' ? 'border-[#630D16] bg-[#630D16]/5' : 'border-[#D4AF37]/30 hover:bg-[#D4AF37]/5'}`}>
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === 'UPI' ? 'border-[#630D16]' : 'border-[#8B4513]/40'}`}>
+                                                {paymentMethod === 'UPI' && <div className="w-2 h-2 rounded-full bg-[#630D16]" />}
+                                            </div>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="UPI"
+                                                checked={paymentMethod === 'UPI'}
+                                                onChange={() => setPaymentMethod('UPI')}
+                                                className="hidden"
+                                            />
+                                            <span className="text-[#3D2B1F] font-medium">UPI / Online (Show QR at Shop)</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

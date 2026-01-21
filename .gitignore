@@ -66,3 +66,10 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Database files
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+dev.db

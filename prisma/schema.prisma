@@ -51,13 +51,17 @@ model User {
 model Order {
   id          String      @id @default(cuid())
   simpleId    String      @unique // Short readable ID
-  userId      String?
-  user        User?       @relation(fields: [userId], references: [id])
+  publicOrderId String    @unique // Human friendly ID: NMV-YYYYMMDD-XXXX
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
   branchId    String
   branch      Branch      @relation(fields: [branchId], references: [id])
   items       OrderItem[]
   status      String      @default("PENDING") // PENDING, PREPARING, READY, COLLECTED
   orderType   String      @default("PRE_ORDER") // IMMEDIATE, PRE_ORDER
+  paymentMethod String    @default("CASH")
+  pickupOtpHash String?   // Hashed OTP for security
+  otpVerified   Boolean   @default(false)
   totalAmount Int
   pickupTime  DateTime
   createdAt   DateTime    @default(now())

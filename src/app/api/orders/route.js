@@ -1,80 +1,179 @@
-import Database from 'better-sqlite3';
-import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-export const dynamic = 'force-dynamic';
-
-function generateSimpleId() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+// Helper to generate human-friendly Order ID: NMV-YYYYMMDD-XXXX
+function generatePublicOrderId() {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+    return `NMV-${dateStr}-${randomSuffix}`;
 }
 
-export async function POST(request) {
+// Helper to generate 4-6 digit OTP
+function generateOtp(length = 6) {
+    return Math.floor(Math.pow(10, length - 1) + Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1))).toString();
+}
+
+export async function GET() {
+    const session = await getSession();
+
+    if (!session || !session.user || !session.user.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify user exists in DB to prevent FK errors (Stale cookies)
+    const userExists = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true }
+    });
+
+    if (!userExists) {
+        return NextResponse.json({ message: 'Session invalid. Please relogin.' }, { status: 401 });
+    }
+
     try {
-        const body = await request.json();
-        const { branchId, items, pickupTime, totalAmount, customerName, phone } = body;
+        const orders = await prisma.order.findMany({
+            where: {
+                userId: session.user.id,
+            },
+            include: {
+                branch: true,
+                items: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
 
-        if (!branchId || !items || items.length === 0) {
-            return NextResponse.json({ error: 'Invalid order data' }, { status: 400 });
-        }
+        // Security: Remove sensitive fields from the list
+        const sanitizedOrders = orders.map(order => {
+            const { pickupOtpHash, ...rest } = order;
+            return rest;
+        });
 
-        const db = new Database('./prisma/dev.db');
-        const orderId = randomUUID();
-        const simpleId = generateSimpleId();
-
-        const insertOrder = db.prepare(`INSERT INTO Orders (id, simpleId, branchId, pickupTime, totalAmount, status, customerName, phone, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
-        insertOrder.run(orderId, simpleId, branchId, pickupTime, totalAmount, 'PENDING', customerName || null, phone || null);
-
-        const insertItem = db.prepare(`INSERT INTO OrderItems (id, orderId, productId, quantity, price) VALUES (?, ?, ?, ?, ?)`);
-        for (const it of items) {
-            insertItem.run(randomUUID(), orderId, it.productId, it.quantity, it.price);
-        }
-
-        const order = {
-            id: orderId,
-            simpleId,
-            branchId,
-            pickupTime,
-            totalAmount,
-            status: 'PENDING',
-            customerName: customerName || null,
-            phone: phone || null,
-        };
-
-        return NextResponse.json({ success: true, order });
+        return NextResponse.json({ orders: sanitizedOrders });
     } catch (error) {
-        console.error('Error creating order', error);
-        return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+        console.error('Fetch orders error:', error);
+        return NextResponse.json(
+            { message: 'Internal server error' },
+            { status: 500 }
+        );
     }
 }
 
-export async function GET(request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const branchId = searchParams.get('branchId');
+export async function POST(request) {
+    const session = await getSession();
 
-        const db = new Database('./prisma/dev.db', { readonly: true });
-        let rows;
-        if (branchId) {
-            rows = db.prepare('SELECT * FROM Orders WHERE branchId = ? ORDER BY createdAt DESC').all(branchId);
-        } else {
-            rows = db.prepare('SELECT * FROM Orders ORDER BY createdAt DESC').all();
+    if (!session || !session.user || !session.user.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // MANDATED FIX: Lookup user by email to ensure valid DB ID (Fixes P2003)
+    if (!session.user.email) {
+        return NextResponse.json({ message: 'Invalid session data' }, { status: 401 });
+    }
+
+    const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+    });
+
+    if (!dbUser) {
+        return NextResponse.json({ message: 'User not found in database. Please relogin.' }, { status: 401 });
+    }
+
+    // Use the confirmed database ID
+    const userId = dbUser.id;
+
+    try {
+        const body = await request.json();
+        const { branchId, items, pickupDate, pickupTime, totalAmount, orderType } = body;
+
+        // Validate request
+        if (!branchId || !items || !items.length || !totalAmount) {
+            return NextResponse.json(
+                { message: 'Missing required fields' },
+                { status: 400 }
+            );
         }
 
-        const orders = rows.map((r) => ({
-            id: r.id,
-            simpleId: r.simpleId,
-            branchId: r.branchId,
-            pickupTime: r.pickupTime,
-            totalAmount: Number(r.totalAmount),
-            status: r.status,
-            customerName: r.customerName,
-            phone: r.phone,
-            createdAt: r.createdAt,
-        }));
+        // Verify Branch exists (Fix for P2003 on branchId)
+        const branchExists = await prisma.branch.findUnique({
+            where: { id: branchId },
+            select: { id: true }
+        });
 
-        return NextResponse.json(orders);
+        if (!branchExists) {
+            return NextResponse.json({ message: 'Invalid Branch selected. Please ensure the branch exists.' }, { status: 400 });
+        }
+
+        // Validate Items (Check for stale Product IDs)
+        for (const item of items) {
+            const productExists = await prisma.product.findUnique({
+                where: { id: item.productId },
+                select: { id: true }
+            });
+            if (!productExists) {
+                return NextResponse.json({
+                    message: `Item '${item.name}' is no longer available (ID mismatch). Please clear your cart and re-add items.`
+                }, { status: 400 });
+            }
+        }
+
+        // Create human-friendly IDs and OTP
+        const publicOrderId = generatePublicOrderId();
+        const simpleId = `NMV-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        let otp = null;
+        let otpHash = null;
+
+        // Only generate OTP for CASH or completed orders
+        if (body.paymentMethod === 'CASH') {
+            otp = generateOtp(6);
+            otpHash = await bcrypt.hash(otp, 10);
+        }
+
+        const order = await prisma.order.create({
+            data: {
+                simpleId,
+                publicOrderId,
+                userId: userId,
+                branchId,
+                totalAmount,
+                status: body.paymentMethod === 'CASH' ? 'CONFIRMED' : 'PENDING_PAYMENT',
+                orderType: orderType || 'PRE_ORDER',
+                paymentMethod: body.paymentMethod || 'CASH',
+                pickupOtpHash: otpHash,
+                pickupTime: new Date(pickupTime || new Date()),
+                items: {
+                    create: items.map((item) => ({
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: item.price,
+                    })),
+                },
+            },
+        });
+
+        // Return order with plain OTP (ONLY THIS ONCE)
+        return NextResponse.json({
+            order: {
+                ...order,
+                otp: otp // Plain OTP for immediate display
+            }
+        }, { status: 201 });
     } catch (error) {
-        console.error('Error fetching orders', error);
-        return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+        console.error('Create order error:', error);
+        return NextResponse.json(
+            { message: 'Internal server error' },
+            { status: 500 }
+        );
     }
 }

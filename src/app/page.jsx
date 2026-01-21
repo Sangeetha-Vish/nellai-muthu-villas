@@ -36,7 +36,7 @@ export default function HomePage() {
     const [pendingProduct, setPendingProduct] = useState(null);
 
     const { addToCart, orderType, setOrderType, preOrderDate } = useCart();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
     const [products, setProducts] = useState([]);
@@ -74,6 +74,8 @@ export default function HomePage() {
     };
 
     const handleAddToCartRequest = (product) => {
+        if (authLoading) return; // Wait for auth to initialize
+
         if (!user) {
             router.push('/login');
             return;

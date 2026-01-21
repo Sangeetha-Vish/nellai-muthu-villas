@@ -56,9 +56,9 @@ export const Header = ({ onBranchClick }) => {
                         <div className="flex items-center gap-4">
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    <span className="hidden md:inline font-sans text-sm text-[#630D16]">
+                                    <Link href="/account/orders" className="hidden md:inline font-sans text-sm text-[#630D16] hover:underline hover:text-[#3D2B1F]">
                                         {user.name}
-                                    </span>
+                                    </Link>
                                     <button
                                         onClick={logout}
                                         className="text-[#630D16] hover:text-[#3D2B1F]"

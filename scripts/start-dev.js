@@ -18,10 +18,32 @@ function error(msg) {
 function cleanup() {
     // 1. Kill existing processes on port 3000
     try {
-        const pid = execSync(`lsof -t -i:${PORT}`).toString().trim();
-        if (pid) {
-            log(`Killing existing process on port ${PORT} (PID: ${pid})...`);
-            execSync(`kill -9 ${pid}`);
+        if (process.platform === 'win32') {
+            // Windows: use netstat + taskkill
+            try {
+                const out = execSync(`netstat -ano | findstr :${PORT}`).toString().trim();
+                if (out) {
+                    const lines = out.split(/\r?\n/);
+                    const pids = new Set();
+                    lines.forEach(line => {
+                        const parts = line.trim().split(/\s+/);
+                        const pid = parts[parts.length - 1];
+                        if (pid && pid !== '0') pids.add(pid);
+                    });
+                    for (const pid of pids) {
+                        log(`Killing existing process on port ${PORT} (PID: ${pid})...`);
+                        try { execSync(`taskkill /PID ${pid} /F`); } catch (e) { /* ignore */ }
+                    }
+                }
+            } catch (e) {
+                // ignore failures (e.g., no matching lines)
+            }
+        } else {
+            const pid = execSync(`lsof -t -i:${PORT}`).toString().trim();
+            if (pid) {
+                log(`Killing existing process on port ${PORT} (PID: ${pid})...`);
+                execSync(`kill -9 ${pid}`);
+            }
         }
     } catch (e) {
         // No process found, ignore
@@ -83,16 +105,47 @@ async function start() {
     log(`Starting Next.js dev server on port ${PORT}...`);
     log('Turbopack is ENABLED.');
 
-    const child = spawn('next', ['dev', '-p', String(PORT)], {
-        stdio: 'inherit',
-        env: { ...process.env } // Pass through env vars
-    });
+    // Resolve platform-local next binary (use node_modules/.bin when available)
+    const nextBin = process.platform === 'win32'
+        ? path.join(process.cwd(), 'node_modules', '.bin', 'next.cmd')
+        : path.join(process.cwd(), 'node_modules', '.bin', 'next');
 
-    child.on('exit', (code) => {
-        if (code !== 0) {
-            log(`Dev server exited with code ${code}`);
-        }
-    });
+    let cmd = nextBin;
+    let args = ['dev', '-p', String(PORT)];
+
+    if (!fs.existsSync(nextBin)) {
+        // Fallback to npx if local binary not found
+        cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+        args = ['next', 'dev', '-p', String(PORT)];
+    }
+
+    let child;
+    try {
+        child = spawn(cmd, args, {
+            stdio: 'inherit',
+            env: { ...process.env }
+        });
+    } catch (err) {
+        // Some Windows environments throw EINVAL when spawning .cmd directly.
+        // Fallback to running via shell which is more permissive.
+        log(`Direct spawn failed (${err.code || err.message}), falling back to shell spawn...`);
+        const shellCmd = process.platform === 'win32'
+            ? `${cmd} ${args.join(' ')}`
+            : `${cmd} ${args.map(a => `'${a}'`).join(' ')}`;
+        child = spawn(shellCmd, { stdio: 'inherit', env: { ...process.env }, shell: true });
+    }
+
+    if (child) {
+        child.on('error', (err) => {
+            error(`Failed to start dev server: ${err.message} (${err.code || 'unknown'})`);
+        });
+
+        child.on('exit', (code) => {
+            if (code !== 0) {
+                log(`Dev server exited with code ${code}`);
+            }
+        });
+    }
 }
 
 start();

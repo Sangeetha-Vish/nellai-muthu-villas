@@ -2,6 +2,7 @@ import { Playfair_Display, Lato } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Footer } from "@/components/Footer";
+import { FloatingCart } from "@/components/FloatingCart";
 
 const playfair = Playfair_Display({
     variable: "--font-serif",
@@ -31,6 +32,7 @@ export default function RootLayout({
                 <Providers>
                     {children}
                     <Footer />
+                    <FloatingCart />
                 </Providers>
             </body>
         </html>

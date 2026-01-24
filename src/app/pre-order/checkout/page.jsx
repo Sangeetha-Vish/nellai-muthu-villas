@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useBranch } from '@/contexts/BranchContext';
+import { useOrders } from '@/contexts/OrderContext';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, MapPin, AlertCircle, ShoppingBag, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
@@ -15,6 +16,7 @@ import Link from 'next/link';
 export default function CheckoutPage() {
     const { items, totalAmount, clearCart, orderType, preOrderDate, preOrderOccasion } = useCart();
     const { selectedBranch } = useBranch();
+    const { addOrder } = useOrders();
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -34,12 +36,18 @@ export default function CheckoutPage() {
         }
     }, [orderType, preOrderDate]);
 
-    // Redirect if cart empty
+    // Redirect if cart empty (but not if we're currently submitting or just finished)
     useEffect(() => {
-        if (items.length === 0) {
-            router.push('/pre-order');
+        if (items.length === 0 && !isSubmitting) {
+            // Add a small delay to ensure we're not just in the middle of a redirect
+            const timeout = setTimeout(() => {
+                if (items.length === 0) {
+                    router.push('/pre-order');
+                }
+            }, 100);
+            return () => clearTimeout(timeout);
         }
-    }, [items, router]);
+    }, [items, router, isSubmitting]);
 
     const getMinTime = () => {
         if (orderType === 'IMMEDIATE') {
@@ -100,33 +108,54 @@ export default function CheckoutPage() {
 
             // UPI FLOW: Defer order creation (Requirement)
             if (paymentMethod === 'UPI') {
-                sessionStorage.setItem('pending_order_payload', JSON.stringify(payload));
+                const richPayload = {
+                    items: items.map(item => ({
+                        productId: item.productId,
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                        weight: item.weight,
+                        image: item.image
+                    })),
+                    totalAmount: Math.round(Number(totalAmount)),
+                    branch: selectedBranch,
+                    pickupTime: pickupDateTime.toISOString(),
+                    orderType: orderType || 'IMMEDIATE',
+                    occasion: preOrderOccasion || 'PERSONAL',
+                    paymentMethod: paymentMethod,
+                    customerName: user?.name || 'Valued Customer',
+                    customerEmail: user?.email
+                };
+                sessionStorage.setItem('pending_order_payload', JSON.stringify(richPayload));
                 router.push('/pre-order/upi');
                 return;
             }
 
-            // CASH FLOW: Create order immediately
-            const res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+            // CASH FLOW & LOCAL MVP FLOW: Create order locally
+            const orderData = {
+                items: items.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    weight: item.weight,
+                    image: item.image
+                })),
+                totalAmount: Math.round(Number(totalAmount)),
+                branch: selectedBranch,
+                pickupTime: pickupDateTime.toISOString(),
+                orderType: orderType || 'IMMEDIATE',
+                occasion: preOrderOccasion || 'PERSONAL',
+                paymentMethod: paymentMethod,
+                customerName: user.name || 'Valued Customer',
+                customerEmail: user.email
+            };
 
-            if (res.ok) {
-                const data = await res.json();
-                clearCart();
+            const savedOrder = addOrder(orderData);
+            clearCart();
 
-                // Store security details for one-time display
-                sessionStorage.setItem('last_order_details', JSON.stringify({
-                    publicOrderId: data.order.publicOrderId,
-                    otp: data.order.otp
-                }));
-
-                router.push(`/pre-order/confirmation?orderId=${data.order.id}&type=${orderType}`);
-            } else {
-                const errData = await res.json();
-                setError(errData.error || "Failed to place order. Please try again.");
-            }
+            // Redirect to success page
+            router.push('/order-success');
         } catch (err) {
             console.error(err);
             setError("Network error. Please try again.");

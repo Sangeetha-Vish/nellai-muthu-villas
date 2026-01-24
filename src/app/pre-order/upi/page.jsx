@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
+import { useOrders } from '@/contexts/OrderContext';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { Header } from '@/components/Header';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 export default function UPIPage() {
     const router = useRouter();
     const { clearCart } = useCart();
+    const { addOrder } = useOrders();
     const [isProcessing, setIsProcessing] = React.useState(false);
 
     const handlePaid = async () => {
@@ -27,38 +29,20 @@ export default function UPIPage() {
         try {
             const payload = JSON.parse(payloadStr);
 
-            // Create Order
-            const res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+            // Create Order locally
+            addOrder(payload);
 
-            if (res.ok) {
-                const data = await res.json();
+            // Clear state
+            sessionStorage.removeItem('pending_order_payload');
 
-                // Clear state
-                sessionStorage.removeItem('pending_order_payload');
+            // Clear Cart
+            clearCart();
 
-                // Store security details for one-time display
-                sessionStorage.setItem('last_order_details', JSON.stringify({
-                    publicOrderId: data.order.publicOrderId,
-                    otp: data.order.otp
-                }));
-
-                // Clear Cart
-                clearCart();
-
-                // Redirect
-                router.push(`/pre-order/confirmation?orderId=${data.order.id}&type=${payload.orderType}`);
-            } else {
-                const err = await res.json();
-                alert(`Order creation failed: ${err.message}`);
-                setIsProcessing(false);
-            }
+            // Redirect to success page
+            router.push('/order-success');
         } catch (error) {
             console.error(error);
-            alert("Network error occurred.");
+            alert("An error occurred while finishing your order.");
             setIsProcessing(false);
         }
     };

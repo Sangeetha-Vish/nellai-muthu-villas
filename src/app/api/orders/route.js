@@ -140,27 +140,53 @@ export async function POST(request) {
             otpHash = await bcrypt.hash(otp, 10);
         }
 
-        const order = await prisma.order.create({
-            data: {
-                simpleId,
-                publicOrderId,
-                userId: userId,
-                branchId,
-                totalAmount,
-                status: body.paymentMethod === 'CASH' ? 'CONFIRMED' : 'PENDING_PAYMENT',
-                orderType: orderType || 'PRE_ORDER',
-                paymentMethod: body.paymentMethod || 'CASH',
-                pickupOtpHash: otpHash,
-                pickupTime: new Date(pickupTime || new Date()),
-                items: {
-                    create: items.map((item) => ({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                    })),
-                },
-            },
-        });
+        // Attempt to create the order; retry if we hit unique constraint collisions
+        let order = null;
+        const maxAttempts = 5;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                // regenerate IDs on retry to avoid collisions
+                const attemptPublicId = attempt === 1 ? publicOrderId : generatePublicOrderId();
+                const attemptSimpleId = attempt === 1 ? simpleId : `NMV-${Math.floor(100000 + Math.random() * 900000)}`;
+
+                order = await prisma.order.create({
+                    data: {
+                        simpleId: attemptSimpleId,
+                        publicOrderId: attemptPublicId,
+                        userId: userId,
+                        branchId,
+                        totalAmount,
+                        status: body.paymentMethod === 'CASH' ? 'CONFIRMED' : 'PENDING_PAYMENT',
+                        orderType: orderType || 'PRE_ORDER',
+                        paymentMethod: body.paymentMethod || 'CASH',
+                        pickupOtpHash: otpHash,
+                        pickupTime: new Date(pickupTime || new Date()),
+                        items: {
+                            create: items.map((item) => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                price: item.price,
+                            })),
+                        },
+                    },
+                });
+
+                break; // success
+            } catch (err) {
+                // If unique constraint failure, try again with new IDs
+                if (err && err.code === 'P2002' && attempt < maxAttempts) {
+                    console.warn(`Order creation collision (P2002), retrying (${attempt}/${maxAttempts})`);
+                    await new Promise(r => setTimeout(r, 50 * attempt));
+                    continue;
+                }
+                // Re-throw other errors to be caught by outer catch
+                throw err;
+            }
+        }
+
+        if (!order) {
+            throw new Error('Failed to create order after multiple attempts');
+        }
 
         // Return order with plain OTP (ONLY THIS ONCE)
         return NextResponse.json({

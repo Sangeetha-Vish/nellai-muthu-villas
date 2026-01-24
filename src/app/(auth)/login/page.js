@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Lock, ArrowRight, Loader } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginContent() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -23,8 +23,14 @@ export default function LoginPage() {
         setIsSubmitting(true);
 
         try {
-            await login(email, password);
-            router.push(redirect);
+            const data = await login(email, password);
+
+            // Auto-redirect admins to dashboard if no specific redirect is set
+            if (['OWNER', 'BRANCH_MANAGER'].includes(data.user.role) && (!redirect || redirect === '/')) {
+                router.push('/admin/dashboard');
+            } else {
+                router.push(redirect);
+            }
         } catch (err) {
             setError(err.message || 'Unable to sign in. Please check your credentials.');
         } finally {
@@ -110,5 +116,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#FDF8F5]">
+                <Loader className="w-8 h-8 animate-spin text-[#D4A373]" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }

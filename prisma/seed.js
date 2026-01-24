@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -7,8 +8,12 @@ async function seedData() {
 
   try {
     console.log('Clearing existing data...');
+    // Clear in correct order of dependencies
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
     await prisma.product.deleteMany();
     await prisma.branch.deleteMany();
+    await prisma.user.deleteMany();
     console.log('✓ Cleared existing data\n');
 
     console.log('Adding products...');
@@ -107,7 +112,30 @@ async function seedData() {
     }
     console.log(`\n✅ Successfully added ${branches.length} branches\n`);
 
-    console.log('🎉 Database seeding completed successfully!');
+    console.log('Adding Admin users...');
+    const hashedAdminPassword = await bcrypt.hash('admin123', 10);
+    await prisma.user.create({
+      data: {
+        email: 'admin@nmv.com',
+        password: hashedAdminPassword,
+        name: 'Admin Owner',
+        role: 'OWNER',
+      }
+    });
+
+    const hashedManagerPassword = await bcrypt.hash('manager123', 10);
+    await prisma.user.create({
+      data: {
+        email: 'manager@nmv.com',
+        password: hashedManagerPassword,
+        name: 'Branch Manager',
+        role: 'BRANCH_MANAGER',
+      }
+    });
+    console.log('  ✓ Added: admin@nmv.com (OWNER)');
+    console.log('  ✓ Added: manager@nmv.com (BRANCH_MANAGER)');
+
+    console.log('\n🎉 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error seeding database:', error);
     process.exit(1);

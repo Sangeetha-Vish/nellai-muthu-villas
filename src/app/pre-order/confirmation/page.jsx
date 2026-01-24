@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Home } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-export default function ConfirmationPage() {
+function ConfirmationContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -94,5 +94,17 @@ export default function ConfirmationPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ConfirmationPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#FDFCF0] flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#630D16] rounded-full animate-bounce"></div>
+            </div>
+        }>
+            <ConfirmationContent />
+        </Suspense>
     );
 }

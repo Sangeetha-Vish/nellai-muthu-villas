@@ -79,3 +79,19 @@ model OrderItem {
   quantity  Int
   price     Int
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  userId    String?
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}

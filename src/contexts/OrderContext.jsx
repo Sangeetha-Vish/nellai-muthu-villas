@@ -25,14 +25,25 @@ export function OrderProvider({ children }) {
         }
     }, []);
 
-    const addOrder = (order) => {
-        const orderId = `NMV-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-        const newOrder = {
-            ...order,
-            id: orderId,
-            status: 'CONFIRMED',
-            createdAt: new Date().toISOString(),
-        };
+    const addOrder = (orderData) => {
+        // If the server already provided a full order object (with ID, OTP etc)
+        // we use it directly. Otherwise we generate a fallback local ID.
+        let newOrder;
+
+        if (orderData.id || orderData.publicOrderId) {
+            newOrder = {
+                ...orderData,
+                createdAt: orderData.createdAt || new Date().toISOString(),
+            };
+        } else {
+            const orderId = `NMV-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+            newOrder = {
+                ...orderData,
+                id: orderId,
+                status: 'CONFIRMED',
+                createdAt: new Date().toISOString(),
+            };
+        }
 
         setOrders(prev => {
             const updatedOrders = [newOrder, ...prev];

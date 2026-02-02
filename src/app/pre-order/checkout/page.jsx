@@ -26,11 +26,24 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
+    const getMinTime = () => {
+        if (orderType === 'IMMEDIATE') {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 30); // 30 mins buffer
+            return now.toTimeString().slice(0, 5);
+        }
+        return "09:00"; // Shop opening time
+    };
+
     // Initialize state based on Order Type
     useEffect(() => {
         if (orderType === 'IMMEDIATE') {
             const today = new Date().toISOString().split('T')[0];
             setDate(today);
+
+            // Set initial time to min allowed time
+            const minTime = getMinTime();
+            if (!time) setTime(minTime);
         } else if (orderType === 'PRE_ORDER' && preOrderDate) {
             setDate(preOrderDate);
         }
@@ -49,14 +62,6 @@ export default function CheckoutPage() {
         }
     }, [items, router, isSubmitting]);
 
-    const getMinTime = () => {
-        if (orderType === 'IMMEDIATE') {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() + 30); // 30 mins buffer
-            return now.toTimeString().slice(0, 5);
-        }
-        return "09:00"; // Shop opening time
-    };
 
     const handleConfirm = async () => {
         setError(null);
@@ -78,11 +83,15 @@ export default function CheckoutPage() {
         // Validate Time for Immediate Order (Double Check)
         if (orderType === 'IMMEDIATE') {
             const now = new Date();
-            const selectedDateTime = new Date(`${date}T${time}`);
-            const minTime = new Date(now.getTime() + 20 * 60000); // 20 min tolerance
+            // Ensure we parse the date/time correctly in local time
+            const [hours, minutes] = time.split(':').map(Number);
+            const selectedDateTime = new Date(now);
+            selectedDateTime.setHours(hours, minutes, 0, 0);
+
+            const minTime = new Date(now.getTime() + 15 * 60000); // reduced to 15 min tolerance for safety
 
             if (selectedDateTime < minTime) {
-                setError("For immediate orders, please allow at least 30 minutes for preparation.");
+                setError("For today's orders, please allow at least 30 minutes for preparation.");
                 return;
             }
         }
@@ -95,20 +104,21 @@ export default function CheckoutPage() {
             const payload = {
                 items: items.map(item => ({
                     productId: item.productId,
+                    name: item.name,
                     quantity: item.quantity,
                     price: item.price
                 })),
-                totalAmount: Math.round(Number(totalAmount)), // Ensure Integer for Prisma
+                totalAmount: Math.round(Number(totalAmount)),
                 branchId: selectedBranch.id,
                 pickupTime: pickupDateTime.toISOString(),
                 orderType: orderType || 'IMMEDIATE',
-                occasion: preOrderOccasion || 'PERSONAL',
-                paymentMethod: paymentMethod // Add payment method
+                paymentMethod: paymentMethod
             };
 
             // UPI FLOW: Defer order creation (Requirement)
             if (paymentMethod === 'UPI') {
                 const richPayload = {
+                    ...payload,
                     items: items.map(item => ({
                         productId: item.productId,
                         name: item.name,
@@ -117,12 +127,7 @@ export default function CheckoutPage() {
                         weight: item.weight,
                         image: item.image
                     })),
-                    totalAmount: Math.round(Number(totalAmount)),
                     branch: selectedBranch,
-                    pickupTime: pickupDateTime.toISOString(),
-                    orderType: orderType || 'IMMEDIATE',
-                    occasion: preOrderOccasion || 'PERSONAL',
-                    paymentMethod: paymentMethod,
                     customerName: user?.name || 'Valued Customer',
                     customerEmail: user?.email
                 };
@@ -131,34 +136,43 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // CASH FLOW & LOCAL MVP FLOW: Create order locally
-            const orderData = {
+            // API Call for CASH orders
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to place order');
+            }
+
+            const { order: savedOrder } = await response.json();
+
+            // Enrich with details for the success page (branch info etc might be needed if server doesn't return full nested objects)
+            const enrichedOrder = {
+                ...savedOrder,
+                branch: selectedBranch, // Server returns branchId, we need branch object for UI
                 items: items.map(item => ({
-                    productId: item.productId,
                     name: item.name,
                     quantity: item.quantity,
                     price: item.price,
                     weight: item.weight,
                     image: item.image
-                })),
-                totalAmount: Math.round(Number(totalAmount)),
-                branch: selectedBranch,
-                pickupTime: pickupDateTime.toISOString(),
-                orderType: orderType || 'IMMEDIATE',
-                occasion: preOrderOccasion || 'PERSONAL',
-                paymentMethod: paymentMethod,
-                customerName: user.name || 'Valued Customer',
-                customerEmail: user.email
+                }))
             };
 
-            const savedOrder = addOrder(orderData);
+            addOrder(enrichedOrder);
             clearCart();
 
             // Redirect to success page
             router.push('/order-success');
         } catch (err) {
             console.error(err);
-            setError("Network error. Please try again.");
+            setError(err.message || "Network error. Please try again.");
         } finally {
             setIsSubmitting(false);
         }

@@ -76,7 +76,9 @@ export default function OrderHistoryPage() {
                                         <Package className="w-6 h-6 text-[#630D16]" />
                                     </div>
                                     <div>
-                                        <p className="font-mono text-sm font-bold text-[#630D16]">{order.id}</p>
+                                        <p className="font-mono text-sm font-bold text-[#630D16]">
+                                            {order.publicOrderId || order.simpleId || order.id}
+                                        </p>
                                         <p className="text-xs text-[#8B4513] opacity-60">
                                             {new Date(order.createdAt).toLocaleDateString([], { dateStyle: 'long' })}
                                         </p>
@@ -131,6 +133,13 @@ export default function OrderHistoryPage() {
                                             <p className="text-xs text-[#8B4513]">{order.customerName}</p>
                                             <p className="text-[10px] text-[#8B4513]/60">{order.customerEmail}</p>
                                             <p className="text-xs text-[#630D16] mt-2 font-medium">Payment: {order.paymentMethod}</p>
+
+                                            {order.paymentMethod === 'CASH' && order.otp && (
+                                                <div className="mt-3 p-2 bg-[#630D16]/5 border border-[#630D16]/20 rounded-lg text-center">
+                                                    <p className="text-[10px] uppercase text-[#8B4513]/60 font-bold mb-1">Pickup OTP</p>
+                                                    <p className="text-xl font-bold tracking-widest text-[#630D16] font-mono">{order.otp}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

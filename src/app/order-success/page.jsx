@@ -53,7 +53,9 @@ export default function OrderSuccessPage() {
                         <div className="flex justify-between items-start mb-4 pb-4 border-b border-[#D4AF37]/10">
                             <div>
                                 <p className="text-xs uppercase tracking-wider text-[#8B4513]/60 font-medium font-sans">Order ID</p>
-                                <p className="text-[#630D16] font-bold font-mono text-lg">{latestOrder.id}</p>
+                                <p className="text-[#630D16] font-bold font-mono text-lg">
+                                    {latestOrder.publicOrderId || latestOrder.simpleId || latestOrder.id}
+                                </p>
                             </div>
                             <div className="text-right">
                                 <p className="text-xs uppercase tracking-wider text-[#8B4513]/60 font-medium font-sans">Status</p>
@@ -62,6 +64,18 @@ export default function OrderSuccessPage() {
                                 </span>
                             </div>
                         </div>
+
+                        {latestOrder.paymentMethod === 'CASH' && latestOrder.otp && (
+                            <div className="mb-6 p-4 bg-[#630D16]/5 border border-[#630D16]/20 rounded-xl text-center">
+                                <p className="text-xs uppercase tracking-wider text-[#8B4513]/60 font-medium font-sans mb-1">Pickup OTP</p>
+                                <p className="text-3xl font-bold tracking-[0.5em] text-[#630D16] font-mono">
+                                    {latestOrder.otp}
+                                </p>
+                                <p className="text-[10px] text-[#8B4513] mt-2 opacity-60">
+                                    Show this OTP at the counter during pickup
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div className="flex items-start gap-3">

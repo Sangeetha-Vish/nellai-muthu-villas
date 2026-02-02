@@ -8,24 +8,30 @@ export const BranchProvider = ({ children }) => {
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState(null);
 
-    // Load saved selection
+    // Fetch branches and validate selection
     useEffect(() => {
-        const saved = localStorage.getItem('selectedBranch');
-        if (saved) {
-            try {
-                setSelectedBranch(JSON.parse(saved));
-            } catch (e) {
-                console.error('Failed to parse saved branch', e);
-            }
-        }
-
-        // Fetch branches from API
         (async () => {
             try {
                 const res = await fetch('/api/branches');
                 if (res.ok) {
                     const data = await res.json();
                     setBranches(data);
+
+                    // Validate existing selection
+                    const saved = localStorage.getItem('selectedBranch');
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            const valid = data.find(b => b.id === parsed.id);
+                            if (valid) {
+                                setSelectedBranch(valid); // update with fresh data
+                            } else {
+                                setSelectedBranch(null); // stale ID
+                            }
+                        } catch (e) {
+                            setSelectedBranch(null);
+                        }
+                    }
                 } else {
                     console.error('Failed to fetch branches', await res.text());
                 }

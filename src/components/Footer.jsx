@@ -24,7 +24,7 @@ export const Footer = () => {
                         <ul className="space-y-3 font-sans text-sm opacity-80">
                             <li><Link href="/" className="hover:text-[#D4AF37] transition-colors">Our Sweets</Link></li>
                             <li><Link href="/about" className="hover:text-[#D4AF37] transition-colors">About Us</Link></li>
-                            <li><Link href="/pre-order/checkout" className="hover:text-[#D4AF37] transition-colors">Track Order</Link></li>
+                            <li><Link href="/orders" className="hover:text-[#D4AF37] transition-colors">Track Order</Link></li>
                             <li><Link href="/login" className="hover:text-[#D4AF37] transition-colors">Staff Login</Link></li>
                         </ul>
                     </div>

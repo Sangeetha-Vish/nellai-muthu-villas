@@ -44,7 +44,7 @@ export const WelcomeScreen = ({ onComplete }) => {
                             Welcome to
                         </h1>
                         <h2 className="font-serif text-5xl md:text-6xl text-[#630D16] mt-4 tracking-wider">
-                            Nella Muthu Vilas
+                            Nellai Muthu Vilas
                         </h2>
                     </motion.div>
                 </motion.div>

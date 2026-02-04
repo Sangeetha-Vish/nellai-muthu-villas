@@ -43,6 +43,7 @@ export async function POST(request) {
             email: user.email,
             name: user.name,
             role: user.role,
+            branchId: user.branchId, // Persist branch context
         });
 
         return NextResponse.json({

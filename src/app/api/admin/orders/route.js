@@ -11,8 +11,16 @@ export async function GET(request) {
 
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type'); // IMMEDIATE, PRE_ORDER
-        const branchId = searchParams.get('branchId');
+        let branchId = searchParams.get('branchId');
         const status = searchParams.get('status');
+
+        // FORCE BRANCH ISOLATION
+        if (session.user.role === 'BRANCH_MANAGER') {
+            if (!session.user.branchId) {
+                return NextResponse.json({ message: 'Manager config error: No branch assigned.' }, { status: 403 });
+            }
+            branchId = session.user.branchId;
+        }
 
         const filter = {};
         if (type) filter.orderType = type;

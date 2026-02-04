@@ -33,9 +33,12 @@ model Branch {
   isActive  Boolean  @default(true)
   status    String   @default("OPEN") // OPEN, BUSY, CLOSED
   distance  String?
+  latitude  Float?   // For auto-detection
+  longitude Float?   // For auto-detection
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
+  users     User[] // Admin/Manager users assigned to this branch
 }
 
 model User {
@@ -45,6 +48,8 @@ model User {
   name      String?
   phone     String?
   role      String   @default("CUSTOMER") // CUSTOMER, OWNER, BRANCH_MANAGER
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]

@@ -27,7 +27,7 @@ export const Header = ({ onBranchClick }) => {
                             </button>
                             <Link href="/" className="flex items-center">
                                 <h1 className="font-serif text-xl md:text-2xl lg:text-3xl text-[#630D16] tracking-wide whitespace-nowrap">
-                                    Nella Muthu Vilas
+                                    Nellai Muthu Vilas
                                 </h1>
                             </Link>
                         </div>
@@ -61,11 +61,13 @@ export const Header = ({ onBranchClick }) => {
                             {/* Branch Selector (Desktop/Tablet) */}
                             <button
                                 onClick={onBranchClick}
-                                className="hidden sm:flex items-center gap-2 text-sm text-[#630D16] hover:text-[#3D2B1F] bg-[#D4AF37]/5 px-3 py-1.5 rounded-lg border border-[#D4AF37]/20 transition-all duration-300"
+                                className="hidden sm:flex items-center gap-2 text-sm text-[#630D16] hover:text-[#3D2B1F] bg-[#FDFCF0] px-3 py-1.5 rounded-full border border-[#D4AF37] shadow-sm hover:shadow-md transition-all duration-300 group"
                             >
-                                <MapPin className="w-4 h-4" />
-                                <span className="font-sans font-medium">
-                                    {selectedBranch ? selectedBranch.name : 'Select Branch'}
+                                <div className="p-1 bg-[#630D16] rounded-full text-[#FDFCF0] group-hover:scale-110 transition-transform">
+                                    <MapPin className="w-3 h-3" />
+                                </div>
+                                <span className="font-sans font-bold text-[#630D16]">
+                                    {selectedBranch ? `Pickup: ${selectedBranch.name}` : 'Select Store'}
                                 </span>
                             </button>
 

@@ -73,3 +73,8 @@ next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
 dev.db
+
+# Session and temp files
+*session*.txt
+*cookies*.txt
+/tmp/

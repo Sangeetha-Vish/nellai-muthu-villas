@@ -9,7 +9,7 @@ export const Footer = () => {
 
                     {/* Brand */}
                     <div>
-                        <h3 className="font-serif text-2xl text-[#FDFCF0] mb-4">Nella Muthu Vilas</h3>
+                        <h3 className="font-serif text-2xl text-[#FDFCF0] mb-4">Nellai Muthu Vilas</h3>
                         <p className="font-sans text-sm opacity-70 leading-relaxed mb-6">
                             Tradition served without hurry. Pre-order your favorite sweets and experience the authentic taste of heritage.
                         </p>
@@ -53,7 +53,7 @@ export const Footer = () => {
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-[#FDFCF0]/10 text-center font-sans text-xs opacity-40">
-                    <p>&copy; {new Date().getFullYear()} Nella Muthu Vilas. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Nellai Muthu Vilas. All rights reserved.</p>
                 </div>
             </div>
         </footer>

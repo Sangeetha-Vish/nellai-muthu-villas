@@ -89,6 +89,8 @@ async function seedData() {
         area: 'RS Puram',
         timings: '8:00 AM - 9:00 PM',
         distance: '2.5 km',
+        latitude: 11.0084,
+        longitude: 76.9427,
       },
       {
         name: 'Gandhipuram',
@@ -96,6 +98,8 @@ async function seedData() {
         area: 'Gandhipuram',
         timings: '8:00 AM - 9:30 PM',
         distance: '3.8 km',
+        latitude: 11.0168,
+        longitude: 76.9558,
       },
       {
         name: 'Saibaba Colony',
@@ -103,6 +107,8 @@ async function seedData() {
         area: 'Saibaba Colony',
         timings: '7:30 AM - 9:00 PM',
         distance: '4.2 km',
+        latitude: 11.0304,
+        longitude: 76.9472,
       },
     ];
 
@@ -124,12 +130,16 @@ async function seedData() {
     });
 
     const hashedManagerPassword = await bcrypt.hash('manager123', 10);
+    // Find RS Puram branch to assign manager
+    const rsPuram = await prisma.branch.findFirst({ where: { name: 'RS Puram' } });
+
     await prisma.user.create({
       data: {
         email: 'manager@nmv.com',
         password: hashedManagerPassword,
         name: 'Branch Manager',
         role: 'BRANCH_MANAGER',
+        branchId: rsPuram?.id
       }
     });
     console.log('  ✓ Added: admin@nmv.com (OWNER)');

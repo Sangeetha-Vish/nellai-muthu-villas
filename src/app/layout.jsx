@@ -17,8 +17,8 @@ const lato = Lato({
 });
 
 export const metadata = {
-    title: "Nella Muthu Vilas - Traditional Digital Sweet Shop",
-    description: "Experience the heritage and tradition of Nella Muthu Vilas sweets.",
+    title: "Nellai Muthu Vilas - Traditional Digital Sweet Shop",
+    description: "Experience the heritage and tradition of Nellai Muthu Vilas sweets.",
 };
 
 export default function RootLayout({

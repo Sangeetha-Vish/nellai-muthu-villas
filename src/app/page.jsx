@@ -10,6 +10,8 @@ import { ModeSelectionHero } from '@/components/ModeSelectionHero';
 import { PreOrderSetupModal } from '@/components/PreOrderSetupModal';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from '@/contexts/LocationContext';
+import { useBranch } from '@/contexts/BranchContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -29,7 +31,32 @@ export default function HomePage() {
     const handleWelcomeComplete = () => {
         sessionStorage.setItem('welcome_seen', 'true');
         setShowWelcome(false);
+        // Trigger location request on welcome complete
+        requestLocation();
     };
+
+    const { requestLocation, userLocation, findNearestBranch } = useLocation();
+    const { setSelectedBranch } = useBranch();
+
+    // Auto-select nearest branch when location is found
+    useEffect(() => {
+        if (userLocation) {
+            fetch('/api/branches')
+                .then(res => res.json())
+                .then(branches => {
+                    const nearest = findNearestBranch(branches);
+                    if (nearest) {
+                        setSelectedBranch(nearest);
+                        // Simple toast/alert replacement
+                        // In a real app we'd use a toast component, using alert per instructions/simplicity
+                        // alert(`Pickup location set to nearest branch: ${nearest.name} (${nearest.calculatedDistance})`);
+                        // Better: Use a small UI banner or ephemeral message instead of blocking alert
+                        console.log(`Auto-selected nearest branch: ${nearest.name}`);
+                    }
+                })
+                .catch(err => console.error("Failed to fetch branches for auto-select", err));
+        }
+    }, [userLocation]);
 
     // Order Type Modal Logic (Fallback)
     const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);

@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin } from 'lucide-react';
 import { BranchCard } from '@/components/ui/Card';
 import { useBranch } from '@/contexts/BranchContext';
+import { useLocation } from '@/contexts/LocationContext';
 
 export const BranchSelector = ({ isOpen, onClose }) => {
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
     const { setSelectedBranch } = useBranch();
+    const { requestLocation, isLocating, permissionStatus } = useLocation(); // Use hook
 
     useEffect(() => {
         const fetchBranches = async () => {
@@ -90,8 +92,12 @@ export const BranchSelector = ({ isOpen, onClose }) => {
                                     We can suggest the nearest branch for you.
                                 </p>
                                 <div className="flex gap-3">
-                                    <button className="px-4 py-2 bg-[#630D16] text-[#FDFCF0] rounded-sm font-sans text-sm transition-all duration-300 hover:bg-[#4A0A10]">
-                                        Allow Location
+                                    <button
+                                        onClick={requestLocation}
+                                        disabled={isLocating || permissionStatus === 'denied'}
+                                        className="px-4 py-2 bg-[#630D16] text-[#FDFCF0] rounded-sm font-sans text-sm transition-all duration-300 hover:bg-[#4A0A10] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isLocating ? 'Locating...' : 'Allow Location'}
                                     </button>
                                     <button className="px-4 py-2 bg-transparent border border-[#630D16] text-[#630D16] rounded-sm font-sans text-sm transition-all duration-300 hover:bg-[#630D16] hover:text-[#FDFCF0]">
                                         Choose Manually

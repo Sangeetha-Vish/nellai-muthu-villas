@@ -3,6 +3,10 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Footer } from "@/components/Footer";
 import { FloatingCart } from "@/components/FloatingCart";
+import { initSentry } from "@/lib/sentry";
+import { LogRocketInit } from "@/components/LogRocketInit";
+
+initSentry();
 
 const playfair = Playfair_Display({
     variable: "--font-serif",
@@ -30,6 +34,7 @@ export default function RootLayout({
                 className={`${playfair.variable} ${lato.variable} antialiased`}
             >
                 <Providers>
+                    <LogRocketInit />
                     {children}
                     <Footer />
                     <FloatingCart />

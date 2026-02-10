@@ -36,14 +36,23 @@ This application follows a **"No Hustle"** approach:
 - Branch context for state management across the app
 
 ### ✅ Backend & Database
-- Prisma ORM with SQLite database
-- Product and Branch models
-- API routes: `/api/products`, `/api/branches`
-- Seed data with 6 sweets and 3 branch locations
+- **PostgreSQL**: Production-grade database for scalability and reliability
+- **Prisma ORM**: Type-safe database access and migrations
+- **Connection Pooling**: Optimized for high-concurrency production workloads
+- **Automated Backups**: Daily database dumps with retention policy
+
+### ✅ Production & Security
+- **HTTPS Enforcement**: Automatic redirection from HTTP to HTTPS
+- **Security Headers**: HSTS, CSP, XFO, and X-Content-Type-Options
+- **Monitoring**: Integration with Sentry (Errors) and LogRocket (Session Replay)
+- **Rate Limiting**: Anti-abuse protection for Auth and Order APIs
+- **Health Checks**: Standardized `/api/health` monitoring endpoint
+- **CDN Optimized**: Asset prefixing for edge delivery of static content
 
 ## 📋 Prerequisites
 
 - Node.js 20.x or higher
+- PostgreSQL 14.x or higher
 - npm (comes with Node.js)
 
 ## 🛠️ Installation & Setup
@@ -54,78 +63,77 @@ This application follows a **"No Hustle"** approach:
 npm install
 \`\`\`
 
-### 2. Set Up Database
+### 2. Set Up Environment Variables
 
-The database has already been migrated. If you need to reset it:
+Copy the production template and fill in your secrets:
+
+\`\`\`bash
+cp .env.production.sample .env
+\`\`\`
+
+### 3. Set Up Database
 
 \`\`\`bash
 # Generate Prisma Client
 npx prisma generate
 
-# Run migrations
-npx prisma migrate dev --name init
+# Apply migrations
+npx prisma migrate deploy
+
+# Seed data (Optional)
+npx prisma db seed
 \`\`\`
 
-### 3. Seed the Database (Optional)
+### 4. Start Application
 
-**Note**: There's currently a Prisma 7 configuration issue with the seed script. You can either:
-
-**Option A**: Manually add data through the Prisma Studio:
-\`\`\`bash
-npx prisma studio
-\`\`\`
-
-**Option B**: Use the Next.js app (products and branches are defined in the seed file for reference)
-
-### 4. Start Development Server
-
+**Development Mode:**
 \`\`\`bash
 npm run dev
 \`\`\`
 
-The application will be available at **http://localhost:3000**
+**Production Mode:**
+\`\`\`bash
+npm run build
+npm start
+\`\`\`
 
 ## 📁 Project Structure
 
 \`\`\`
 nellamuthuvilas/
 ├── prisma/
-│   ├── schema.prisma          # Database schema (Product, Branch models)
-│   ├── seed.ts                # Seed data script
+│   ├── schema.prisma          # Database schema (PostgreSQL)
+│   ├── seed.js                # Seed data script
 │   └── migrations/            # Database migrations
 ├── public/
 │   └── images/                # Product images
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── products/route.ts    # GET /api/products
-│   │   │   └── branches/route.ts    # GET /api/branches
-│   │   ├── globals.css        # Brand theme & animations
-│   │   ├── layout.tsx         # Root layout with fonts
-│   │   └── page.tsx           # Homepage (integrates all modules)
+│   │   │   ├── health/        # Health check endpoint
+│   │   │   ├── orders/        # Order processing with retries
+│   │   │   └── ...
 │   ├── components/
-│   │   ├── ui/
-│   │   │   ├── Button.tsx     # Reusable button component
-│   │   │   └── Card.tsx       # ProductCard & BranchCard
-│   │   ├── WelcomeScreen.tsx  # Module 2: 3-second welcome
-│   │   ├── Header.tsx         # Module 3: Navigation header
-│   │   ├── ProductGrid.tsx    # Module 3: Product showcase
-│   │   └── BranchSelector.tsx # Module 4: Branch selection modal
-│   ├── contexts/
-│   │   └── BranchContext.tsx  # Global branch state management
-│   └── lib/
-│       ├── prisma.ts          # Prisma client singleton
-│       └── utils.ts           # Utility functions (cn)
+│   │   └── ...
+│   ├── lib/
+│   │   ├── prisma.js          # Prisma client with pooling
+│   │   ├── error-handler.js   # Centralized error mapping
+│   │   └── cdn.js             # Asset prefixing logic
+├── scripts/
+│   ├── db-backup.sh           # Daily backup automation
+│   └── migrate-sqlite-to-pg.js # Migration utility
+├── .github/workflows/         # CI/CD pipelines
 ├── package.json
 └── README.md
 \`\`\`
 
 ## 🎯 Key Technologies
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
+- **Framework**: Next.js 16 (App Router)
+- **Database**: PostgreSQL with Prisma ORM
+- **Monitoring**: Sentry & LogRocket
+- **Infrastructure**: GitHub Actions (CI/CD)
 - **Styling**: Tailwind CSS 4
-- **Database**: SQLite with Prisma ORM
 - **Animations**: Framer Motion
 - **Icons**: Lucide React
 - **Fonts**: Google Fonts (Playfair Display, Lato)

@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+import { handleApiError, withRetry } from '@/lib/error-handler';
+
 // Helper to generate human-friendly Order ID: NMV-YYYYMMDD-XXXX
 function generatePublicOrderId() {
     const today = new Date();
@@ -24,17 +26,17 @@ export async function GET() {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user exists in DB to prevent FK errors (Stale cookies)
-    const userExists = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { id: true }
-    });
-
-    if (!userExists) {
-        return NextResponse.json({ message: 'Session invalid. Please relogin.' }, { status: 401 });
-    }
-
     try {
+        // Verify user exists in DB to prevent FK errors (Stale cookies)
+        const userExists = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { id: true }
+        });
+
+        if (!userExists) {
+            return NextResponse.json({ message: 'Session invalid. Please relogin.' }, { status: 401 });
+        }
+
         const orders = await prisma.order.findMany({
             where: {
                 userId: session.user.id,
@@ -60,11 +62,7 @@ export async function GET() {
 
         return NextResponse.json({ orders: sanitizedOrders });
     } catch (error) {
-        console.error('Fetch orders error:', error);
-        return NextResponse.json(
-            { message: 'Internal server error' },
-            { status: 500 }
-        );
+        return handleApiError(error, { action: 'GET_ORDERS', userId: session.user.id });
     }
 }
 
@@ -75,24 +73,23 @@ export async function POST(request) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // MANDATED FIX: Lookup user by email to ensure valid DB ID (Fixes P2003)
-    if (!session.user.email) {
-        return NextResponse.json({ message: 'Invalid session data' }, { status: 401 });
-    }
-
-    const dbUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true }
-    });
-
-    if (!dbUser) {
-        return NextResponse.json({ message: 'User not found in database. Please relogin.' }, { status: 401 });
-    }
-
-    // Use the confirmed database ID
-    const userId = dbUser.id;
-
     try {
+        // MANDATED FIX: Lookup user by email to ensure valid DB ID (Fixes P2003)
+        if (!session.user.email) {
+            return NextResponse.json({ message: 'Invalid session data' }, { status: 401 });
+        }
+
+        const dbUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true }
+        });
+
+        if (!dbUser) {
+            return NextResponse.json({ message: 'User not found in database. Please relogin.' }, { status: 401 });
+        }
+
+        const userId = dbUser.id;
+
         const body = await request.json();
         const { branchId, items, pickupDate, pickupTime, totalAmount, orderType } = body;
 
@@ -140,53 +137,34 @@ export async function POST(request) {
             otpHash = await bcrypt.hash(otp, 10);
         }
 
-        // Attempt to create the order; retry if we hit unique constraint collisions
-        let order = null;
-        const maxAttempts = 5;
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                // regenerate IDs on retry to avoid collisions
-                const attemptPublicId = attempt === 1 ? publicOrderId : generatePublicOrderId();
-                const attemptSimpleId = attempt === 1 ? simpleId : `NMV-${Math.floor(100000 + Math.random() * 900000)}`;
+        // Attempt to create the order with retry logic for transient failures
+        const order = await withRetry(async () => {
+            // regenerate IDs on retry to avoid collisions if p2002 happens
+            const attemptPublicId = generatePublicOrderId();
+            const attemptSimpleId = `NMV-${Math.floor(100000 + Math.random() * 900000)}`;
 
-                order = await prisma.order.create({
-                    data: {
-                        simpleId: attemptSimpleId,
-                        publicOrderId: attemptPublicId,
-                        userId: userId,
-                        branchId,
-                        totalAmount,
-                        status: body.paymentMethod === 'CASH' ? 'CONFIRMED' : 'PENDING_PAYMENT',
-                        orderType: orderType || 'PRE_ORDER',
-                        paymentMethod: body.paymentMethod || 'CASH',
-                        pickupOtpHash: otpHash,
-                        pickupTime: new Date(pickupTime || new Date()),
-                        items: {
-                            create: items.map((item) => ({
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                price: item.price,
-                            })),
-                        },
+            return await prisma.order.create({
+                data: {
+                    simpleId: attemptSimpleId,
+                    publicOrderId: attemptPublicId,
+                    userId: userId,
+                    branchId,
+                    totalAmount,
+                    status: body.paymentMethod === 'CASH' ? 'CONFIRMED' : 'PENDING_PAYMENT',
+                    orderType: orderType || 'PRE_ORDER',
+                    paymentMethod: body.paymentMethod || 'CASH',
+                    pickupOtpHash: otpHash,
+                    pickupTime: new Date(pickupTime || new Date()),
+                    items: {
+                        create: items.map((item) => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            price: item.price,
+                        })),
                     },
-                });
-
-                break; // success
-            } catch (err) {
-                // If unique constraint failure, try again with new IDs
-                if (err && err.code === 'P2002' && attempt < maxAttempts) {
-                    console.warn(`Order creation collision (P2002), retrying (${attempt}/${maxAttempts})`);
-                    await new Promise(r => setTimeout(r, 50 * attempt));
-                    continue;
-                }
-                // Re-throw other errors to be caught by outer catch
-                throw err;
-            }
-        }
-
-        if (!order) {
-            throw new Error('Failed to create order after multiple attempts');
-        }
+                },
+            });
+        }, 3, 100);
 
         // Return order with plain OTP (ONLY THIS ONCE)
         return NextResponse.json({
@@ -196,10 +174,6 @@ export async function POST(request) {
             }
         }, { status: 201 });
     } catch (error) {
-        console.error('Create order error:', error);
-        return NextResponse.json(
-            { message: 'Internal server error' },
-            { status: 500 }
-        );
+        return handleApiError(error, { action: 'CREATE_ORDER', userId: session.user?.id });
     }
 }

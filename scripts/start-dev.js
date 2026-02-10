@@ -39,10 +39,15 @@ function cleanup() {
                 // ignore failures (e.g., no matching lines)
             }
         } else {
-            const pid = execSync(`lsof -t -i:${PORT}`).toString().trim();
-            if (pid) {
-                log(`Killing existing process on port ${PORT} (PID: ${pid})...`);
-                execSync(`kill -9 ${pid}`);
+            const pidOutput = execSync(`lsof -t -i:${PORT} || true`).toString().trim();
+            if (pidOutput) {
+                const pids = pidOutput.split(/\s+/).filter(p => p);
+                if (pids.length > 0) {
+                    log(`Killing existing process(es) on port ${PORT} (PID: ${pids.join(', ')})...`);
+                    pids.forEach(pid => {
+                        try { execSync(`kill -9 ${pid}`); } catch (e) { /* ignore */ }
+                    });
+                }
             }
         }
     } catch (e) {

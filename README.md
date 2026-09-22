@@ -1,272 +1,360 @@
-# Nella Muthu Vilas - Traditional Digital Sweet Shop
+# Nellai Muthu Vilas
 
-A three-application architecture for browsing and ordering traditional Indian sweets.
+Nellai Muthu Vilas is a full-stack traditional sweets ordering platform designed with separate applications for customers and administrators.
+
+Customers can browse products, select branches, authenticate, and place orders. Administrators use a separate application to manage products, branches, orders, feedback, and reports.
+
+The system follows a **three-application architecture** with a centralized backend and database:
+
+```text
+Customer Application ──┐
+                       │
+                       ▼
+                    REST API
+                       │
+Admin Application ─────┤
+                       │
+                       ▼
+                Express Backend
+                       │
+                       ▼
+                    Prisma
+                       │
+                       ▼
+                  PostgreSQL
+```
 
 ## Architecture
 
-| Application | Responsibility | Development URL |
-| --- | --- | --- |
-| `client/` | Customer storefront, account, cart, checkout, and customer workflows | http://localhost:3000 |
-| `admin/` | Admin login, dashboard, product, branch, order, feedback, and report screens | http://localhost:3001 |
-| `server/` | Shared Prisma-backed HTTP API and health checks | http://localhost:5000 |
+The system is divided into three main applications.
 
-Prisma schema and migrations are centralized under `server/prisma/` and are not redesigned.
+### 1. Client — Customer Application
 
-### API Migration
+The `client` is the customer-facing Next.js application.
 
-The dedicated Express server now owns all 20 original API paths:
+It is responsible for:
+
+* Product browsing
+* Branch selection
+* Customer authentication
+* Cart and order workflows
+* Displaying order information
+* Customer-facing UI
+
+The client does **not** communicate directly with PostgreSQL. It communicates with the backend through REST APIs.
+
+### 2. Admin — Administration Application
+
+The `admin` is a separate Next.js application used by administrators.
+
+It is responsible for:
+
+* Admin authentication
+* Product management
+* Branch management
+* Order management
+* Feedback management
+* Reports and dashboard information
+
+The admin application also communicates with the same centralized backend instead of accessing the database directly.
+
+### 3. Server — Backend Application
+
+The `server` is a Node.js + Express application that acts as the central backend.
+
+It is responsible for:
+
+* Exposing REST APIs
+* Authentication
+* Authorization
+* Request validation
+* Business logic
+* Order processing
+* Database operations
+* Communication with PostgreSQL through Prisma
+
+This makes the server the **single backend source of truth** for both customer and admin applications.
+
+---
+
+## Backend Architecture
+
+The backend follows a layered architecture:
 
 ```text
-GET    /api/health
-GET    /api/products
-GET    /api/branches
-POST   /api/auth/login
-POST   /api/auth/signup
-GET    /api/auth/me
-POST   /api/auth/logout
-POST   /api/admin/login
-GET/POST /api/orders
-POST   /api/feedback
-GET/PATCH /api/admin/branches
-GET    /api/admin/dashboard/stats
-GET/POST/PATCH /api/admin/products
-GET    /api/admin/orders
-PATCH  /api/admin/orders/:id
-GET    /api/admin/logs
-GET    /api/admin/feedback
-GET    /api/admin/reports/sales
-GET    /api/admin/reports/products
-GET    /api/admin/reports/branches
+                HTTP Request
+                     │
+                     ▼
+                   Route
+                     │
+                     ▼
+                 Middleware
+                     │
+                     ▼
+                 Controller
+                     │
+                     ▼
+                  Service
+                     │
+                     ▼
+                   Prisma
+                     │
+                     ▼
+                PostgreSQL
 ```
 
-Implementation follows `routes -> controllers -> services -> Prisma`, with JWT session-cookie and bearer-token support in `server/src/middleware/auth.js`. The client and admin apps contain no API route files and use `NEXT_PUBLIC_API_URL`.
+Each layer has a specific responsibility.
 
-## 🎨 Design Philosophy
+### Route
 
-This application follows a **"No Hustle"** approach:
-- Calm, respectful, and traditional aesthetic
-- Browsing without pressure - no forced location sharing
-- Heritage brand experience, not a typical e-commerce site
-- Gentle transitions and elegant animations
+Defines the API endpoint and HTTP method.
 
-## 🚀 Features Implemented (Modules 1-4)
+For example:
 
-### ✅ Module 1: Brand & Theme System
-- **Color Palette**: Deep Maroon (#630D16), Cream (#FDFCF0), Muted Gold (#D4AF37), Dark Brown (#3D2B1F)
-- **Typography**: Playfair Display (serif headings), Lato (body text)
-- **Animations**: Smooth fade-in/fade-out transitions (no bounce, no jarring effects)
-- **UI Components**: Button (solid/outline variants), ProductCard, BranchCard
+```text
+POST /api/orders
+GET  /api/products
+PATCH /api/admin/orders/:id
+```
 
-### ✅ Module 2: Entry & Welcome Flow
-- 3-second welcome screen with brand name
-- Automatic fade-out transition to homepage
-- Seamless state management without page reload
+### Middleware
 
-### ✅ Module 3: Homepage (Products First)
-- Header with logo, branch selector, and cart
-- Gentle note: "You may browse our sweets without selecting a branch"
-- Product showcase grid with 6 traditional sweets
-- Non-intrusive "Choose Branch" call-to-action
+Runs before the controller and performs request-level checks such as authentication and authorization.
 
-### ✅ Module 4: Branch Selection
-- Modal interface with smooth animations
-- Smart suggestion UI (location-based, UI only)
-- Manual branch selection with 3 branches
-- Branch context for state management across the app
+### Controller
 
-### ✅ Backend & Database
-- **PostgreSQL**: Production-grade database for scalability and reliability
-- **Prisma ORM**: Type-safe database access and migrations
-- **Connection Pooling**: Optimized for high-concurrency production workloads
-- **Automated Backups**: Daily database dumps with retention policy
+Handles the HTTP layer.
 
-### ✅ Production & Security
-- **HTTPS Enforcement**: Automatic redirection from HTTP to HTTPS
-- **Security Headers**: HSTS, CSP, XFO, and X-Content-Type-Options
-- **Monitoring**: Integration with Sentry (Errors) and LogRocket (Session Replay)
-- **Rate Limiting**: Anti-abuse protection for Auth and Order APIs
-- **Health Checks**: Standardized `/api/health` monitoring endpoint
-- **CDN Optimized**: Asset prefixing for edge delivery of static content
+It receives the request, passes the required information to the service layer, and sends the appropriate response back to the client.
 
-## 📋 Prerequisites
+### Service
 
-- Node.js 20.x or higher
-- PostgreSQL 14.x or higher
-- npm (comes with Node.js)
+Contains the application's business logic.
 
-## 🛠️ Installation & Setup
+For example, when creating an order, the service handles the required checks and determines what database operations need to be performed.
 
-### 1. Install Dependencies
+### Prisma
 
-\`\`\`bash
-npm install
-cd client && npm install
-cd ../admin && npm install
-cd ../server && npm install
-\`\`\`
+Prisma acts as the database access layer between the backend and PostgreSQL.
 
-### 2. Set Up Environment Variables
+### PostgreSQL
 
-Copy the production template and fill in your secrets:
+PostgreSQL is the persistent relational database where application data is stored.
 
-\`\`\`bash
-cp .env.production.sample .env
-\`\`\`
+---
 
-### 3. Set Up Database
+# Complete Request Flow
 
-\`\`\`bash
-# Generate Prisma Client from the server directory
-cd server
-npm run prisma:generate
+A typical request travels through the system like this:
 
-# Apply migrations
-npm run prisma:migrate
+```text
+User Action
+    ↓
+Next.js Client / Admin
+    ↓
+HTTP REST Request
+    ↓
+Express Route
+    ↓
+Authentication / Authorization Middleware
+    ↓
+Controller
+    ↓
+Service
+    ↓
+Prisma
+    ↓
+PostgreSQL
+    ↓
+Service
+    ↓
+Controller
+    ↓
+JSON Response
+    ↓
+Client / Admin UI
+```
 
-# Seed data (Optional)
-npm run prisma:seed
-\`\`\`
+## Example: Customer Places an Order
 
-### 4. Start Applications
+Suppose a customer clicks **"Place Order"**.
 
-**Development Mode:**
-\`\`\`bash
-npm run client
-npm run admin
-npm run server
-\`\`\`
+```text
+Customer
+   ↓
+Client
+   ↓
+POST /api/orders
+   ↓
+Express Route
+   ↓
+Authentication Middleware
+   ↓
+Order Controller
+   ↓
+Order Service
+   ↓
+Prisma
+   ↓
+PostgreSQL
+   ↓
+Order Created
+   ↓
+JSON Response
+   ↓
+Client Updates UI
+```
 
-Build each frontend with `npm run build` from its application directory.
+The flow works as follows:
 
-## 📁 Project Structure
+1. The customer submits the order from the Next.js client.
+2. The client sends a `POST /api/orders` request to the Express server.
+3. Authentication middleware verifies the customer's authenticated session/token.
+4. The request reaches the order controller.
+5. The controller passes the required data to the order service.
+6. The service applies the order-related business rules and performs the required database operations.
+7. Prisma communicates with PostgreSQL to create the order and its related data.
+8. The result is returned from the service to the controller.
+9. The controller sends a JSON response to the client.
+10. The client updates the UI based on the response.
 
-\`\`\`
+This keeps the frontend responsible for **presentation and user interaction**, while the backend remains responsible for **business rules and data management**.
+
+---
+
+# Authentication and Authorization
+
+Authentication is handled by the backend.
+
+The basic flow is:
+
+```text
+Login Request
+     ↓
+Express Server
+     ↓
+Credentials Verification
+     ↓
+JWT-backed Session
+     ↓
+Protected API Request
+     ↓
+Authentication Middleware
+     ↓
+User Identity
+     ↓
+Authorization Check
+     ↓
+Controller → Service → Prisma
+```
+
+The backend uses `bcrypt` for password verification and supports JWT-backed session cookies as well as bearer-token authentication.
+
+For admin operations, authorization is performed on the backend. Role and branch-level restrictions are checked before protected admin operations are allowed.
+
+---
+
+# Database Architecture
+
+The database layer is centralized inside the server:
+
+```text
+server/
+└── prisma/
+    ├── schema.prisma
+    ├── migrations/
+    └── seed.js
+```
+
+The database flow is:
+
+```text
+Express Server
+      ↓
+Prisma ORM
+      ↓
+PostgreSQL
+```
+
+`server/prisma/` is the **single source of truth** for the database schema and migrations.
+
+The client and admin applications do not import Prisma or database connection code. They access application data only through the backend APIs.
+
+---
+
+# Why This Architecture?
+
+The main reason for separating the applications is **separation of responsibility**.
+
+```text
+Client
+  → Customer experience
+
+Admin
+  → Administration
+
+Server
+  → API + authentication + business logic
+
+Prisma
+  → Database access
+
+PostgreSQL
+  → Data storage
+```
+
+This prevents database logic and business rules from being duplicated across the customer and admin applications.
+
+Both applications use the same backend, so rules such as authentication, authorization, order processing, and database operations are handled centrally.
+
+---
+
+# Project Structure
+
+```text
 nellamuthuvilas/
-├── client/                   # Customer-facing Next.js application
-├── admin/                    # Admin-facing Next.js application
-├── server/                   # Dedicated Prisma-backed backend
-│   ├── prisma/                # The only Prisma directory (PostgreSQL)
+│
+├── client/                       # Customer application
+│   ├── src/
+│   └── public/
+│
+├── admin/                        # Admin application
+│   ├── src/
+│   └── public/
+│
+├── server/                       # Backend application
+│   ├── src/
+│   │   ├── routes/
+│   │   ├── controllers/
+│   │   ├── services/
+│   │   ├── middleware/
+│   │   ├── config/
+│   │   └── server.js
+│   │
+│   ├── prisma/
 │   │   ├── schema.prisma
-│   │   ├── seed.js
-│   │   └── migrations/
-│   └── src/                   # API routes, controllers, services, middleware
-├── .github/workflows/         # CI/CD pipelines
-├── package.json               # Orchestration commands only
+│   │   ├── migrations/
+│   │   └── seed.js
+│   │
+│   └── scripts/
+│
+├── package.json
 └── README.md
-\`\`\`
+```
 
-## 🎯 Key Technologies
+## Technology Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Database**: PostgreSQL with Prisma ORM
-- **Monitoring**: Sentry & LogRocket
-- **Infrastructure**: GitHub Actions (CI/CD)
-- **Styling**: Tailwind CSS 4
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Fonts**: Google Fonts (Playfair Display, Lato)
+| Layer                | Technology       |
+| -------------------- | ---------------- |
+| Customer Application | Next.js, React   |
+| Admin Application    | Next.js, React   |
+| Backend              | Node.js, Express |
+| API                  | REST             |
+| Authentication       | JWT, bcrypt      |
+| ORM                  | Prisma           |
+| Database             | PostgreSQL       |
+| Styling              | Tailwind CSS     |
 
-## 🎨 Design Tokens
+## Interview Summary
 
-### Colors
-\`\`\`css
---color-brand-maroon: #630D16   /* Primary brand color */
---color-brand-cream: #FDFCF0    /* Background */
---color-brand-gold: #D4AF37     /* Accents, borders */
---color-brand-brown: #3D2B1F    /* Text */
-\`\`\`
-
-### Typography
-- **Headings**: Playfair Display (serif)
-- **Body**: Lato (sans-serif)
-- **Line Height**: Generous spacing for readability
-
-### Animations
-- Fade-in: 1.5s ease-out
-- Fade-out: 1.5s ease-in
-- No bounce, no spinning loaders
-
-## 📱 Responsive Design
-
-The application is fully responsive and works on:
-- ✅ Desktop (1920px+)
-- ✅ Tablet (768px - 1024px)
-- ✅ Mobile (320px - 767px)
-
-## 🔧 Known Issues & Future Enhancements
-
-### Current Limitations
-1. **Prisma 7 Seed Script**: The seed script has configuration issues with Prisma 7. Data can be added manually via Prisma Studio.
-2. **Cart Functionality**: Cart is UI-only (shows "0" items). Full cart implementation is pending.
-3. **Location Services**: Smart branch suggestion is UI-only. Geolocation integration is pending.
-
-### Future Modules (Not Yet Implemented)
-- Module 5: Product Detail Page
-- Module 6: Cart & Checkout Flow
-- Module 7: Order Confirmation
-- Module 8: Admin Panel
-- Module 9: Festival Mode
-- Module 10: Payment Integration
-
-## 🧪 Testing the Application
-
-1. **Welcome Screen**: Open http://localhost:3000 and observe the 3-second welcome animation
-2. **Product Browsing**: Scroll through the 6 traditional sweets
-3. **Branch Selection**: Click "Choose Branch for Availability & Pickup" to open the modal
-4. **Branch Selection**: Select a branch from the list
-5. **Header Update**: Notice the header updates with the selected branch name
-
-## 📝 API Endpoints
-
-### GET /api/products
-Returns all products from the database.
-
-**Response**:
-\`\`\`json
-[
-  {
-    "id": "...",
-    "name": "Mysore Pak",
-    "description": "Traditional ghee-based sweet...",
-    "image": "/images/mysore-pak.jpg",
-    "price": 450,
-    "weight": "500g",
-    "tradition": "Prepared using the authentic recipe...",
-    "available": true
-  }
-]
-\`\`\`
-
-### GET /api/branches
-Returns all branch locations.
-
-**Response**:
-\`\`\`json
-[
-  {
-    "id": "...",
-    "name": "RS Puram",
-    "location": "123 Avinashi Road, RS Puram",
-    "area": "RS Puram",
-    "timings": "8:00 AM - 9:00 PM",
-    "distance": "2.5 km"
-  }
-]
-\`\`\`
-
-## 🤝 Contributing
-
-This is a heritage brand project. When contributing:
-1. Maintain the calm, traditional aesthetic
-2. Follow the "No Hustle" philosophy
-3. Test on both desktop and mobile
-4. Ensure smooth, gentle transitions
-
-## 📄 License
-
-Private project for Nella Muthu Vilas.
-
-## 🙏 Acknowledgments
-
-- Design inspired by traditional Indian sweet shops
-- Built with modern web technologies while respecting heritage values
+> **Nellai Muthu Vilas uses a three-application architecture consisting of a customer-facing Next.js application, an admin-facing Next.js application, and a centralized Express backend. Both frontends communicate with the backend through REST APIs. On the backend, I separated routes, middleware, controllers, and services based on responsibility. The service layer handles the business logic, while Prisma handles database access to PostgreSQL. This keeps the database and business logic centralized in the backend and prevents the client and admin applications from directly accessing the database.**

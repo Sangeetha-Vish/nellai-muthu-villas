@@ -9,7 +9,7 @@
 - [x] Implementation Plan Created
 - [x] Create `OrderContext.jsx`
 - [x] Integrate `OrderProvider` in `Providers.jsx`
-- [x] Update `handleConfirm` in `src/app/pre-order/checkout/page.jsx`
+- [x] Update `handleConfirm` in `client/src/app/pre-order/checkout/page.jsx`
 - [x] Implement `localStorage` persistence for orders
 - [x] Create `/order-success` page
 - [x] Create `/orders` history page

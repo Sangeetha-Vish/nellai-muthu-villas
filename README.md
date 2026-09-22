@@ -1,6 +1,45 @@
 # Nella Muthu Vilas - Traditional Digital Sweet Shop
 
-A calm, elegant, and heritage-focused web application for browsing and ordering traditional Indian sweets. Built with Next.js 14, TypeScript, Tailwind CSS, and Prisma.
+A three-application architecture for browsing and ordering traditional Indian sweets.
+
+## Architecture
+
+| Application | Responsibility | Development URL |
+| --- | --- | --- |
+| `client/` | Customer storefront, account, cart, checkout, and customer workflows | http://localhost:3000 |
+| `admin/` | Admin login, dashboard, product, branch, order, feedback, and report screens | http://localhost:3001 |
+| `server/` | Shared Prisma-backed HTTP API and health checks | http://localhost:5000 |
+
+Prisma schema and migrations are centralized under `server/prisma/` and are not redesigned.
+
+### API Migration
+
+The dedicated Express server now owns all 20 original API paths:
+
+```text
+GET    /api/health
+GET    /api/products
+GET    /api/branches
+POST   /api/auth/login
+POST   /api/auth/signup
+GET    /api/auth/me
+POST   /api/auth/logout
+POST   /api/admin/login
+GET/POST /api/orders
+POST   /api/feedback
+GET/PATCH /api/admin/branches
+GET    /api/admin/dashboard/stats
+GET/POST/PATCH /api/admin/products
+GET    /api/admin/orders
+PATCH  /api/admin/orders/:id
+GET    /api/admin/logs
+GET    /api/admin/feedback
+GET    /api/admin/reports/sales
+GET    /api/admin/reports/products
+GET    /api/admin/reports/branches
+```
+
+Implementation follows `routes -> controllers -> services -> Prisma`, with JWT session-cookie and bearer-token support in `server/src/middleware/auth.js`. The client and admin apps contain no API route files and use `NEXT_PUBLIC_API_URL`.
 
 ## 🎨 Design Philosophy
 
@@ -61,6 +100,9 @@ This application follows a **"No Hustle"** approach:
 
 \`\`\`bash
 npm install
+cd client && npm install
+cd ../admin && npm install
+cd ../server && npm install
 \`\`\`
 
 ### 2. Set Up Environment Variables
@@ -74,56 +116,42 @@ cp .env.production.sample .env
 ### 3. Set Up Database
 
 \`\`\`bash
-# Generate Prisma Client
-npx prisma generate
+# Generate Prisma Client from the server directory
+cd server
+npm run prisma:generate
 
 # Apply migrations
-npx prisma migrate deploy
+npm run prisma:migrate
 
 # Seed data (Optional)
-npx prisma db seed
+npm run prisma:seed
 \`\`\`
 
-### 4. Start Application
+### 4. Start Applications
 
 **Development Mode:**
 \`\`\`bash
-npm run dev
+npm run client
+npm run admin
+npm run server
 \`\`\`
 
-**Production Mode:**
-\`\`\`bash
-npm run build
-npm start
-\`\`\`
+Build each frontend with `npm run build` from its application directory.
 
 ## 📁 Project Structure
 
 \`\`\`
 nellamuthuvilas/
-├── prisma/
-│   ├── schema.prisma          # Database schema (PostgreSQL)
-│   ├── seed.js                # Seed data script
-│   └── migrations/            # Database migrations
-├── public/
-│   └── images/                # Product images
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── health/        # Health check endpoint
-│   │   │   ├── orders/        # Order processing with retries
-│   │   │   └── ...
-│   ├── components/
-│   │   └── ...
-│   ├── lib/
-│   │   ├── prisma.js          # Prisma client with pooling
-│   │   ├── error-handler.js   # Centralized error mapping
-│   │   └── cdn.js             # Asset prefixing logic
-├── scripts/
-│   ├── db-backup.sh           # Daily backup automation
-│   └── migrate-sqlite-to-pg.js # Migration utility
+├── client/                   # Customer-facing Next.js application
+├── admin/                    # Admin-facing Next.js application
+├── server/                   # Dedicated Prisma-backed backend
+│   ├── prisma/                # The only Prisma directory (PostgreSQL)
+│   │   ├── schema.prisma
+│   │   ├── seed.js
+│   │   └── migrations/
+│   └── src/                   # API routes, controllers, services, middleware
 ├── .github/workflows/         # CI/CD pipelines
-├── package.json
+├── package.json               # Orchestration commands only
 └── README.md
 \`\`\`
 

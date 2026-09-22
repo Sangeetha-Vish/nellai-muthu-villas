@@ -1,0 +1,26 @@
+import { Router } from 'express';
+import * as controller from '../controllers/apiController.js';
+
+const router = Router();
+const asyncRoute = (handler) => (request, response, next) => Promise.resolve(handler(request, response, next)).catch(next);
+router.get('/health', asyncRoute(controller.health));
+router.get('/products', asyncRoute(controller.products));
+router.get('/branches', asyncRoute(controller.branches));
+router.post('/auth/login', asyncRoute((req, res) => controller.authLogin(req, res)));
+router.post('/auth/signup', asyncRoute(controller.signup));
+router.get('/auth/me', asyncRoute(controller.me));
+router.post('/auth/logout', asyncRoute(controller.logout));
+router.post('/admin/login', asyncRoute((req, res) => controller.authLogin(req, res, true)));
+router.route('/orders').get(controller.requireAuth, asyncRoute(controller.orders)).post(controller.requireAuth, asyncRoute(controller.orders));
+router.post('/feedback', controller.requireAuth, asyncRoute(controller.feedback));
+router.route('/admin/branches').get(controller.requireAdmin, asyncRoute(controller.adminBranches)).patch(controller.requireAdmin, asyncRoute(controller.adminBranches));
+router.get('/admin/dashboard/stats', controller.requireAdmin, asyncRoute(controller.adminStats));
+router.route('/admin/products').get(controller.requireAdmin, asyncRoute(controller.adminProducts)).post(controller.requireAdmin, asyncRoute(controller.adminProducts)).patch(controller.requireAdmin, asyncRoute(controller.adminProducts));
+router.get('/admin/orders', controller.requireAdmin, asyncRoute(controller.adminOrders));
+router.patch('/admin/orders/:id', controller.requireAdmin, asyncRoute(controller.adminOrder));
+router.get('/admin/logs', controller.requireAdmin, asyncRoute(controller.adminLogs));
+router.get('/admin/feedback', controller.requireAdmin, asyncRoute(controller.adminFeedback));
+router.get('/admin/reports/sales', controller.requireAdmin, asyncRoute(controller.salesReport));
+router.get('/admin/reports/products', controller.requireAdmin, asyncRoute(controller.productReport));
+router.get('/admin/reports/branches', controller.requireAdmin, asyncRoute(controller.branchReport));
+export default router;

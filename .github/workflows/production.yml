@@ -36,16 +36,16 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefix server
 
       - name: Check Prisma schema
-        run: npx prisma validate
+        run: npm run prisma:validate --prefix server
 
       - name: Lint check
         run: npm run lint
 
       - name: Run Build
-        run: npm run build
+        run: npm run build --prefix client
         env:
           DATABASE_URL: postgresql://user:password@localhost:5432/nellai_muthu_test?schema=public
           JWT_SECRET: ${{ secrets.JWT_SECRET }}

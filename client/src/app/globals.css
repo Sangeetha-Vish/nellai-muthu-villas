@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors */
+  --color-brand-maroon: #630D16;
+  --color-brand-cream: #FDFCF0;
+  --color-brand-gold: #D4AF37;
+  --color-brand-brown: #3D2B1F;
+
+  /* Overwrite default background/foreground if needed */
+  --color-background: var(--color-brand-cream);
+  --color-foreground: var(--color-brand-brown);
+
+  /* Typography */
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Lato", sans-serif;
+
+  /* Animations - Module 2 & 4 */
+  --animate-fade-in: fade-in 1.5s ease-out forwards;
+  --animate-fade-out: fade-out 1.5s ease-in forwards;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 0;
+    }
+  }
+}
+
+:root {
+  --background: #FDFCF0;
+  --foreground: #3D2B1F;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+}
+
+.bg-pattern-traditional {
+  background-color: #FDFCF0;
+  background-image:
+    radial-gradient(#D4AF37 0.5px, transparent 0.5px),
+    radial-gradient(#D4AF37 0.5px, #FDFCF0 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  background-blend-mode: multiply;
+  opacity: 1;
+}
+
+.watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 8rem;
+  color: rgba(212, 175, 55, 0.05);
+  /* Faded Gold */
+  pointer-events: none;
+  z-index: 0;
+  white-space: nowrap;
+  font-family: var(--font-serif);
+}
+
+/* Custom Scrollbar for a more elegant feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-brand-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-maroon);
+}

@@ -168,7 +168,7 @@ Download from: https://sqlitebrowser.org/
 
 1. Open DB Browser for SQLite
 2. Click **"Open Database"**
-3. Navigate to: `c:\Users\sange\MyProjecct\nellamuthuvilas\prisma\dev.db`
+3. This legacy SQLite browser workflow is no longer supported. The application uses PostgreSQL configured in `server/.env`.
 4. Click **"Open"**
 
 ### Step 3: Add Data
@@ -197,8 +197,9 @@ Download from: https://sqlitebrowser.org/
 
 **Solution**:
 ```bash
-# Regenerate Prisma Client
-npx prisma generate
+# Regenerate Prisma Client from the backend
+cd server
+npm run prisma:generate
 
 # Try again
 npx prisma studio
@@ -208,8 +209,9 @@ npx prisma studio
 
 **Solution**:
 ```bash
-# Run migrations to create the database
-npx prisma migrate dev --name init
+# Apply PostgreSQL migrations
+cd server
+npm run prisma:migrate
 
 # Then open Prisma Studio
 npx prisma studio
@@ -230,7 +232,7 @@ npx prisma studio
 ### Issue: Images not displaying
 
 **Solution**:
-- The images are already in `public/images/` folder
+- The images are already in `client/public/images/` and `admin/public/images/` folders
 - Make sure the image paths in the database match exactly:
   - `/images/mysore-pak.jpg`
   - `/images/badam-halwa.jpg`

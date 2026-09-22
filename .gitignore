@@ -70,9 +70,6 @@ next-env.d.ts
 # Database files
 *.db
 *.db-journal
-prisma/*.db
-prisma/*.db-journal
-dev.db
 
 # Session and temp files
 *session*.txt

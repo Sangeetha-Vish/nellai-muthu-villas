@@ -4,7 +4,7 @@ Follow this checklist before every production release to ensure stability, secur
 
 ## 🚀 Deployment Essentials
 - [ ] **Environment**: Verify all secrets in `.env` match production values.
-- [ ] **Migrations**: Run `npx prisma migrate deploy` to sync the database schema.
+- [ ] **Migrations**: Run `npm run prisma:migrate --prefix server` to sync the PostgreSQL schema.
 - [ ] **Build**: Ensure `npm run build` completes with zero errors.
 - [ ] **Health**: Verify `/api/health` returns `200 OK` after deployment.
 
@@ -20,11 +20,11 @@ Follow this checklist before every production release to ensure stability, secur
 - [ ] **Logs**: Verify production logs are clean of sensitive data (passwords, JWTs).
 
 ## 💾 Database & Backups
-- [ ] **Backups**: Ensure `scripts/db-backup.sh` is scheduled as a Daily Cron job.
+- [ ] **Backups**: Ensure `server/scripts/db-backup.sh` is scheduled as a Daily Cron job.
 - [ ] **Pooling**: Verify database connection pooling is active (Check lib/prisma.js).
 
 ## 📈 Performance
-- [ ] **Load**: Run `node scripts/load-test.js` to ensure latency is within limits.
+- [ ] **Load**: Run `node client/scripts/load-test.js` to ensure latency is within limits.
 - [ ] **Caching**: Verify static assets have a `Cache-Control` header for CDN efficiency.
 
 ## ↩️ Rollback Plan

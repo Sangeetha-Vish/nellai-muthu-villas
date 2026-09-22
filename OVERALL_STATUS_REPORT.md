@@ -29,14 +29,14 @@
 - **State Management:** React Context API (Auth, Cart, Branch, Order, Location)
 
 ### Backend
-- **Database:** SQLite (Development) via Prisma ORM 5.19.1
+- **Database:** PostgreSQL via Prisma ORM 5.19.1
 - **Authentication:** Custom JWT-based auth using Jose 6.1.3
 - **Password Hashing:** bcryptjs 3.0.3
-- **API Routes:** Next.js API Routes (REST)
+- **API Routes:** Express REST API in `server/`
 
 ### Tooling & Scripts
-- **Development Server:** Custom start-dev.js with database checks
-- **Database Management:** 13 utility scripts for seeding, verification, and inspection
+- **Development Server:** Express server in `server/src/server.js`
+- **Database Management:** Server-owned Prisma seed and verification scripts
 - **Package Manager:** npm
 
 ---
@@ -234,7 +234,7 @@ User Journey:
 #### Image System
 - ✅ Automated image path normalization
 - ✅ Fallback images for missing products
-- ✅ Images stored in `/public/images/products/`
+- ✅ Images stored in `client/public/images/products/` and `admin/public/images/products/`
 - ✅ Copy scripts for image management
 
 ---
@@ -454,24 +454,13 @@ UPI (Partial):
 
 ## 🛠️ Utility Scripts
 
-### Database & Seeding
-1. **`seed-data.js`** - Seeds products, branches, users with sample data
-2. **`inspect-db.js`** - Inspect database contents
-3. **`check-admin.js`** - Verify admin user exists
-4. **`get_products.js`** - Fetch and display all products
-
-### Image Management
-5. **`check_product_images.js`** - Verify product image paths
-6. **`copy_images_to_products.js`** - Copy images to correct directories
-
-### Verification & Validation
-7. **`system-verification.js`** - Comprehensive system checks
-8. **`validate-isolation.js`** - Verify data isolation between order types
-9. **`verify-isolation.js`** - Simplified isolation checks
-10. **`verify-audit.js`** - Audit log verification
-
-### Development
-11. **`start-dev.js`** - Custom dev server with pre-flight checks
+### Server Scripts
+- `server/prisma/seed.js` - PostgreSQL seed data
+- `server/scripts/check-admin.js` - Verify admin user exists
+- `server/scripts/system-verification.js` - Comprehensive system checks
+- `server/scripts/validate-isolation.js` - API isolation verification
+- `server/scripts/verify-isolation.js` - Database isolation verification
+- `server/scripts/verify-audit.js` - Audit log verification
 
 ---
 
@@ -479,17 +468,16 @@ UPI (Partial):
 
 ```
 nellamuthuvilas/
-├── prisma/
-│   ├── schema.prisma          # Database models
-│   ├── seed.js                # Seed data script
-│   ├── dev.db                 # SQLite database (development)
-│   └── migrations/            # Database migrations
-├── public/
-│   ├── images/
-│   │   └── products/          # Product images
-│   └── favicon.ico
-├── scripts/                   # 13 utility scripts
-├── src/
+├── server/
+│   └── prisma/
+│       ├── schema.prisma      # PostgreSQL database models
+│       ├── seed.js            # Seed data script
+│       └── migrations/        # PostgreSQL migrations
+├── client/public/             # Customer assets
+├── admin/public/              # Admin assets
+├── server/scripts/            # Backend/database utilities
+├── client/scripts/            # Customer performance/security utilities
+├── client/src/
 │   ├── app/
 │   │   ├── (auth)/            # Auth routes
 │   │   │   ├── login/
@@ -790,12 +778,12 @@ nellamuthuvilas/
 ## 📞 Support & Maintenance
 
 ### Development Environment
-- **Start Dev Server:** `npm run dev`
-- **Build Production:** `npm run build`
-- **Start Production:** `npm start`
-- **Database Studio:** `npx prisma studio`
-- **Run Migrations:** `npx prisma migrate dev`
-- **Seed Database:** `npm run seed` (or `node scripts/seed-data.js`)
+- **Start Applications:** `npm run client`, `npm run admin`, `npm run server`
+- **Build Client:** `cd client && npm run build`
+- **Build Admin:** `cd admin && npm run build`
+- **Database Studio:** `cd server && npx prisma studio --schema prisma/schema.prisma`
+- **Run Migrations:** `npm run prisma:migrate --prefix server`
+- **Seed Database:** `npm run prisma:seed --prefix server`
 
 ### Common Tasks
 - **Add New Product:** Use admin panel → Products → Add Product

@@ -1,0 +1,25 @@
+import { clearSessionCookie, readSession, requireAdmin, requireAuth, setSessionCookie } from '../middleware/auth.js';
+import { loginUser, signupUser } from '../services/authService.js';
+import { service } from '../services/apiService.js';
+
+const send = (response, result, successStatus = 200) => result?.error ? response.status(result.status).json({ message: result.error }) : response.status(successStatus).json(result);
+export const health = async (_request, response) => { const result = await service.health(); response.status(result.database === 'UP' ? 200 : 503).json(result); };
+export const products = async (_request, response) => response.json(await service.products());
+export const branches = async (_request, response) => response.json(await service.branches());
+export const authLogin = async (request, response, adminOnly = false) => { const { email, password } = request.body || {}; if (!email || !password) return response.status(400).json({ message: 'Email and password are required' }); const result = await loginUser({ email, password }, adminOnly); if (!result) return response.status(401).json({ message: adminOnly ? 'Invalid administrative credentials' : 'Invalid credentials' }); setSessionCookie(response, result.session.token, result.session.expires); response.json({ message: 'Logged in successfully', user: { id: result.user.id, email: result.user.email, name: result.user.name, role: result.user.role } }); };
+export const signup = async (request, response) => { const { email, password, name, phone } = request.body || {}; if (!email || !password) return response.status(400).json({ message: 'Email and password are required' }); const result = await signupUser({ email, password, name, phone }); if (result.exists) return response.status(400).json({ message: 'User already exists' }); setSessionCookie(response, result.session.token, result.session.expires); response.status(201).json({ message: 'User created successfully', user: { id: result.user.id, email: result.user.email, name: result.user.name, role: result.user.role } }); };
+export const me = async (request, response) => response.json({ user: (await readSession(request))?.user || null });
+export const logout = async (_request, response) => { clearSessionCookie(response); response.json({ message: 'Logged out successfully' }); };
+export const orders = async (request, response) => request.method === 'GET' ? send(response, { orders: await service.ordersForUser(request.session.user.id) }) : send(response, await service.createOrder(request.session.user, request.body), 201);
+export const feedback = async (request, response) => send(response, await service.createFeedback(request.session.user.id, request.body), 201);
+export const adminProducts = async (request, response) => { if (request.method === 'GET') return response.json(await service.products(true)); if (request.method === 'POST') { if (!request.body.name || !request.body.price) return response.status(400).json({ message: 'Name and price are required' }); return response.status(201).json(await service.createProduct(request.body)); } if (!request.body.id) return response.status(400).json({ message: 'Product ID required' }); return response.json(await service.updateProduct(request.body)); };
+export const adminBranches = async (request, response) => request.method === 'GET' ? response.json(await service.branches()) : (!request.body.id ? response.status(400).json({ message: 'Branch ID required' }) : response.json(await service.updateBranch(request.body)));
+export const adminStats = async (request, response) => { let branchId = request.query.branchId; if (request.session.user.role === 'BRANCH_MANAGER') { if (!request.session.user.branchId) return response.status(403).json({ message: 'Manager config error: No branch assigned.' }); branchId = request.session.user.branchId; } return response.json(await service.adminStats(branchId, request.session.user.role === 'BRANCH_MANAGER')); };
+export const adminOrders = async (request, response) => response.json(await service.adminOrders(request.query, request.session.user));
+export const adminOrder = async (request, response) => { const allowed = ['RECEIVED', 'PREPARING', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED']; if (request.body.status && !allowed.includes(request.body.status)) return response.status(400).json({ message: 'Invalid status' }); return response.json(await service.updateOrder(request.params.id, request.body.status)); };
+export const adminLogs = async (_request, response) => response.json(await service.logs());
+export const adminFeedback = async (request, response) => response.json(await service.feedback(request.query));
+export const salesReport = async (request, response) => response.json(await service.salesReport(parseInt(request.query.days || '7')));
+export const productReport = async (_request, response) => response.json(await service.productReport());
+export const branchReport = async (_request, response) => response.json(await service.branchReport());
+export { requireAdmin, requireAuth };
